@@ -1,5 +1,12 @@
 # image_enhancement
-Library of Python functions for various types of image enhancement.
+Library of NumPy functions for various types of image enhancement, including:
+- Spatial Tone Mapping
+- Local Contrast Enhencement
+- Color Correction (white balance)
+- Color Saturation Adjustment
+
+
+All 
 
 
 # Dependences
