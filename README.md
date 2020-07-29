@@ -1,10 +1,9 @@
 # image_enhancement
-Library of NumPy-based functions for various types of image enhancement, including:
+Library of NumPy-based Image Processing functions for various types of Image Enhancement, including:
 - Spatial Tone Mapping
 - Local Contrast Enhencement
 - Color Correction (White Balance)
 - Color Saturation Adjustment
-
 
 # Functions:
 ![/src/image_enhancement.py](/src/image_enhancement.py "/src/image_enhancement.py")  contains:
@@ -30,19 +29,13 @@ Library of NumPy-based functions for various types of image enhancement, includi
 
 # Contents:
 ```tree
-├── amplify                   [Auto-generated, Amplify-native service config]
-├── source
-│   ├── ocr                       [Custom, non-Amplify backend service stack]
-│   │   ├── human-review              [Human review integration with Amazon A2I]
-│   │   ├── postprocessing            [Extract business-level fields from Textract output]
-│   │   ├── preprocessing             [Image pre-check/cleanup logic]
-│   │   ├── textract-integration      [SFn-Textract integrations]
-│   │   ├── ui-notifications          [SFn-IoT push notifications components]
-│   │   ├── StateMachine.asl.json     [Processing flow definition]
-│   │   └── template.sam.yml          [AWS SAM template for non-Amplify components]
-│   └── webui                     [Front-end app (VueJS, BootstrapVue, Amplify)]
-├── amplify.yml               [Overall solution build steps]
-└── Makefile                  [Detailed build commands, to simplify amplify.yml]
+├── src                                    [Directory: Source code]
+│   ├── image_enhancement.py               [Main script with all the functions]       
+├── images                                 [Directory: Sample test images]
+├── example_color_correction.py            [Example of applying color correction]
+├── example_enhance_image.py               [Example of combined image enhancement]
+├── example_local_contrast_enhancement.py  [Example of applying increasing local details]
+└── example_medical_image.py               [Example of processing medical images]
 ```
 
 # Dependences
