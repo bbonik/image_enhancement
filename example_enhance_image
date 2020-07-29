@@ -20,26 +20,26 @@ from src.image_enhancement import enhance_image
 if __name__=="__main__":
     
     # select an image
-    filename = "images/alhambra1.jpg"
+#    filename = "images/alhambra1.jpg"
 #    filename = "images/alhambra2.jpg"
-#    filename = "images/lisbon.jpg"
+    filename = "images/lisbon.jpg"
 
     image = imageio.imread(filename)  # load image
     
     # setting up parameters
     parameters = {}
-    parameters['local_contrast'] = 1.5  # 1.5x increase in details
+    parameters['local_contrast'] = 1.2  # 1.5x increase in details
     parameters['mid_tones'] = 0.5
     parameters['tonal_width'] = 0.5
     parameters['areas_dark'] = 0.7  # 70% improvement in dark areas
     parameters['areas_bright'] = 0.5  # 50% improvement in bright areas
     parameters['preserve_tones'] = True
     parameters['saturation_degree'] = 1.2  # 1.2x increase in color saturation
-    parameters['color_correction'] = False
+    parameters['color_correction'] = True
     image_enhanced = enhance_image(image, parameters, verbose=False)  
     
     # display results
-    plt.figure()
+    plt.figure(figsize=(7,3))
     plt.subplot(1,2,1)
     plt.imshow(image, vmin=0, vmax=255)
     plt.title('Input image')

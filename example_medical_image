@@ -57,7 +57,7 @@ if __name__=="__main__":
             )
 
     # display results
-    plt.figure()
+    plt.figure(figsize=(7,3))
     plt.subplot(1,2,1)
     plt.imshow(image, cmap='gray', vmin=0, vmax=1)
     plt.title('Input image')

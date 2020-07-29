@@ -28,7 +28,7 @@ if __name__=="__main__":
     image_enhanced = correct_colors(image, verbose=False)
     
     # display results
-    plt.figure()
+    plt.figure(figsize=(7,3))
     plt.subplot(1,2,1)
     plt.imshow(image, vmin=0, vmax=255)
     plt.title('Input image')
