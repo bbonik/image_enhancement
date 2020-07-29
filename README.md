@@ -1,13 +1,13 @@
 # image_enhancement
-Library of NumPy functions for various types of image enhancement, including:
+Library of NumPy-based functions for various types of image enhancement, including:
 - Spatial Tone Mapping
 - Local Contrast Enhencement
-- Color Correction (white balance)
+- Color Correction (White Balance)
 - Color Saturation Adjustment
 
 
 # Functions:
-/src/image_enhancement.py contains:
+![/src/image_enhancement.py](/src/image_enhancement.py "/src/image_enhancement.py")  contains:
 - **get_photometric_mask()**: Estimates local brightness distribution (edge-aware blurring).
 - **apply_local_contrast_enhancement()**: Adjusts strength of local details.
 - **apply_spatial_tonemapping()**: Adjusts brightness levels in dark and bright regions. 
@@ -18,6 +18,32 @@ Library of NumPy functions for various types of image enhancement, including:
 - **linear_to_srgb()**: Transforms image to the gamma-corrected color space. 
 - **enhance_image()**: Applies multiple stages of enhancement to an image. 
 
+# Examples:
+![Example1](images/Figure_1.png "Example1")
+![Example2](images/Figure_2.png "Example2")
+![Example3](images/Figure_3.png "Example3")
+![Example4](images/Figure_4.png "Example4")
+![Example5](images/Figure_5.png "Example5")
+![Example6](images/Figure_6.png "Example6")
+
+
+
+# Contents:
+```tree
+├── amplify                   [Auto-generated, Amplify-native service config]
+├── source
+│   ├── ocr                       [Custom, non-Amplify backend service stack]
+│   │   ├── human-review              [Human review integration with Amazon A2I]
+│   │   ├── postprocessing            [Extract business-level fields from Textract output]
+│   │   ├── preprocessing             [Image pre-check/cleanup logic]
+│   │   ├── textract-integration      [SFn-Textract integrations]
+│   │   ├── ui-notifications          [SFn-IoT push notifications components]
+│   │   ├── StateMachine.asl.json     [Processing flow definition]
+│   │   └── template.sam.yml          [AWS SAM template for non-Amplify components]
+│   └── webui                     [Front-end app (VueJS, BootstrapVue, Amplify)]
+├── amplify.yml               [Overall solution build steps]
+└── Makefile                  [Detailed build commands, to simplify amplify.yml]
+```
 
 # Dependences
 - numpy
@@ -25,12 +51,7 @@ Library of NumPy functions for various types of image enhancement, including:
 - skimage (can be easily bypassed if needed)
 
 
-![Ecxample1](images/Figure_1.png "Example1")
-![Ecxample2](images/Figure_2.png "Example2")
-![Ecxample3](images/Figure_3.png "Example3")
-![Ecxample4](images/Figure_4.png "Example4")
-![Ecxample5](images/Figure_5.png "Example5")
-![Ecxample6](images/Figure_6.png "Example6")
+
 
 
 
