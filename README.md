@@ -5,6 +5,14 @@ Library of NumPy-based Image Processing functions for various types of Image Enh
 - Color Correction (White Balance)
 - Color Saturation Adjustment
 
+# Examples:
+![Example1](images/Figure_1.png "Example1")
+![Example2](images/Figure_2.png "Example2")
+![Example3](images/Figure_3.png "Example3")
+![Example4](images/Figure_4.png "Example4")
+![Example5](images/Figure_5.png "Example5")
+![Example6](images/Figure_6.png "Example6")
+
 # Functions:
 ![/src/image_enhancement.py](/src/image_enhancement.py "/src/image_enhancement.py")  contains:
 - **get_photometric_mask()**: Estimates local brightness distribution (edge-aware blurring).
@@ -16,16 +24,6 @@ Library of NumPy-based Image Processing functions for various types of Image Enh
 - **srgb_to_linear()**: Transforms image to the linear color space. 
 - **linear_to_srgb()**: Transforms image to the gamma-corrected color space. 
 - **enhance_image()**: Applies multiple stages of enhancement to an image. 
-
-# Examples:
-![Example1](images/Figure_1.png "Example1")
-![Example2](images/Figure_2.png "Example2")
-![Example3](images/Figure_3.png "Example3")
-![Example4](images/Figure_4.png "Example4")
-![Example5](images/Figure_5.png "Example5")
-![Example6](images/Figure_6.png "Example6")
-
-
 
 # Contents:
 ```tree
@@ -42,11 +40,6 @@ Library of NumPy-based Image Processing functions for various types of Image Enh
 - numpy
 - imageio
 - skimage (can be easily bypassed if needed)
-
-
-
-
-
 
 # Citations
 If you use this code in your research please cite the following papers:   
