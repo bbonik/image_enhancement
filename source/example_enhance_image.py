@@ -3,7 +3,8 @@
 """
 Created on Wed Jul 29 11:35:49 2020
 
-Example: enhancement of local details 
+Example: image enhancement 
+(spatial tone-mapping, local contrast enhancement, color enhancement)
 
 @author: Vasileios Vonikakis (bbonik@gmail.com)
 """
@@ -12,27 +13,29 @@ Example: enhancement of local details
 
 import imageio
 import matplotlib.pyplot as plt
-from src.image_enhancement import enhance_image
+from image_enhancement import enhance_image
 
 
 
 if __name__=="__main__":
     
     # select an image
-    filename = "images/waves.jpg"
+    # filename = "../images/alhambra1.jpg"
+    # filename = "../images/alhambra2.jpg"
+    filename = "../images/lisbon.jpg"
 
     image = imageio.imread(filename)  # load image
     
     # setting up parameters
     parameters = {}
-    parameters['local_contrast'] = 4  # 4x increase in details
+    parameters['local_contrast'] = 1.2  # 1.5x increase in details
     parameters['mid_tones'] = 0.5
     parameters['tonal_width'] = 0.5
-    parameters['areas_dark'] = 0.0  # no change in dark areas
-    parameters['areas_bright'] = 0.0  # no change in bright areas
-    parameters['preserve_tones'] = False
-    parameters['saturation_degree'] = 2  # 2x increase in color saturation
-    parameters['color_correction'] = False
+    parameters['areas_dark'] = 0.7  # 70% improvement in dark areas
+    parameters['areas_bright'] = 0.5  # 50% improvement in bright areas
+    parameters['preserve_tones'] = True
+    parameters['saturation_degree'] = 1.2  # 1.2x increase in color saturation
+    parameters['color_correction'] = True
     image_enhanced = enhance_image(image, parameters, verbose=False)  
     
     # display results
@@ -44,8 +47,8 @@ if __name__=="__main__":
     plt.tight_layout()
     
     plt.subplot(1,2,2)
-    plt.imshow(image_enhanced, cmap='gray', vmin=0, vmax=1)
-    plt.title('Increased local contrast')
+    plt.imshow(image_enhanced, vmin=0, vmax=255)
+    plt.title('Enhanced image')
     plt.axis('off')
     plt.tight_layout()
     

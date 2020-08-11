@@ -14,15 +14,15 @@ import imageio
 import matplotlib.pyplot as plt
 from skimage import img_as_float
 from skimage.color import rgb2gray
-from src.image_enhancement import get_photometric_mask
-from src.image_enhancement import apply_spatial_tonemapping
-from src.image_enhancement import apply_local_contrast_enhancement
+from image_enhancement import get_photometric_mask
+from image_enhancement import apply_spatial_tonemapping
+from image_enhancement import apply_local_contrast_enhancement
 
 
 if __name__=="__main__":
     
     # select an image
-    filename = "images/xray.jpg"
+    filename = "../images/xray.jpg"
 
     image = imageio.imread(filename)  # load image
     

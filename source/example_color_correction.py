@@ -12,16 +12,16 @@ Example: color correction (white balance)
 
 import imageio
 import matplotlib.pyplot as plt
-from src.image_enhancement import correct_colors
+from image_enhancement import correct_colors
 
 
 
 if __name__=="__main__":
     
     # select an image
-    filename = "images/strawberries.jpg"
-#    filename = "images/underwater1.jpg"
-#    filename = "images/underwater2.jpg"
+    filename = "../images/strawberries.jpg"
+    # filename = "../images/underwater1.jpg"
+    # filename = "../images/underwater2.jpg"
     
     image = imageio.imread(filename)  # load image
     
