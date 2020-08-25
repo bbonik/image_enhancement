@@ -14,7 +14,7 @@ Library of NumPy-based Image Processing functions for various types of Image Enh
 ![Example6](images/Figure_6.png "Example6")
 
 # Functions:
-![/src/image_enhancement.py](/src/image_enhancement.py "/src/image_enhancement.py")  contains:
+![/source/image_enhancement.py](/source/image_enhancement.py "/source/image_enhancement.py")  contains:
 - **get_photometric_mask()**: Estimates local brightness distribution (edge-aware blurring).
 - **apply_local_contrast_enhancement()**: Adjusts strength of local details.
 - **apply_spatial_tonemapping()**: Adjusts brightness levels in dark and bright regions. 
@@ -27,13 +27,13 @@ Library of NumPy-based Image Processing functions for various types of Image Enh
 
 # Contents:
 ```tree
-├── src                                    [Directory: Source code]
-│   ├── image_enhancement.py               [Main script with all the functions]       
-├── images                                 [Directory: Sample test images]
-├── example_color_correction.py            [Example of applying color correction]
-├── example_enhance_image.py               [Example of combined image enhancement]
-├── example_local_contrast_enhancement.py  [Example of applying increasing local details]
-└── example_medical_image.py               [Example of processing medical images]
+├── src                                        [Directory: Source code]
+│   ├── image_enhancement.py                   [Main script with all the functions] 
+│   ├── example_color_correction.py            [Example of applying color correction]
+│   ├── example_enhance_image.py               [Example of combined image enhancement]
+│   ├── example_local_contrast_enhancement.py  [Example of applying increasing local details]
+│   └── example_medical_image.py               [Example of processing medical images]
+└── images                                     [Directory: Sample test images]
 ```
 
 # Dependences
