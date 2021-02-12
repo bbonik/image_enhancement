@@ -17,9 +17,12 @@ from image_enhancement import correct_colors
 
 
 if __name__=="__main__":
+
     
     # select an image
     filename = "../images/strawberries.jpg"
+    # filename = "../images/napoleon.jpg"
+    # filename = "../images/shark.jpg"
     # filename = "../images/underwater1.jpg"
     # filename = "../images/underwater2.jpg"
     
