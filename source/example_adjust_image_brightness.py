@@ -20,21 +20,19 @@ from image_enhancement import enhance_image
 if __name__=="__main__":
     
     # select an image
-    # filename = "../images/alhambra1.jpg"
-    # filename = "../images/alhambra2.jpg"
     filename = "../images/lisbon.jpg"
 
     image = imageio.imread(filename)  # load image
     
     # setting up parameters
     parameters = {}
-    parameters['local_contrast'] = 1.2  # 1.2x increase in details
+    parameters['local_contrast'] = 1.0  # no increase in details
     parameters['mid_tones'] = 0.5  # middle of range
     parameters['tonal_width'] = 0.5  # middle of range
-    parameters['areas_dark'] = 0.7  # 70% improvement in dark areas
-    parameters['areas_bright'] = 0.5  # 50% improvement in bright areas
-    parameters['brightness'] = 0.1  # slight increase in overall brightness
-    parameters['saturation_degree'] = 1.2  # 1.2x increase in color saturation
+    parameters['areas_dark'] = 0.0  # no change in dark areas
+    parameters['areas_bright'] = 0.0  # no change in bright areas
+    parameters['saturation_degree'] = 1.0  # no change in color saturation
+    parameters['brightness'] = 0.5  # increase overall brightness by 50%
     parameters['preserve_tones'] = True
     parameters['color_correction'] = True
     image_enhanced = enhance_image(image, parameters, verbose=False)  

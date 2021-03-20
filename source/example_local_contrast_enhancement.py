@@ -30,8 +30,9 @@ if __name__=="__main__":
     parameters['tonal_width'] = 0.5
     parameters['areas_dark'] = 0.0  # no change in dark areas
     parameters['areas_bright'] = 0.0  # no change in bright areas
-    parameters['preserve_tones'] = False
     parameters['saturation_degree'] = 2  # 2x increase in color saturation
+    parameters['brightness'] = 0.0  # no change in brightness
+    parameters['preserve_tones'] = False
     parameters['color_correction'] = False
     image_enhanced = enhance_image(image, parameters, verbose=False)  
     

@@ -18,7 +18,8 @@ from skimage import img_as_float
 
 plt.close('all')
 
-
+#TODO: better memory management!!!! Too many copying of images. 
+#something like "inplace"?
 
 
 def map_value(
@@ -457,8 +458,8 @@ def apply_spatial_tonemapping(
         
     '''
     
-    #defining parameters
-    EPSILON = 1 / 255
+    # defining parameters
+    EPSILON = 1 / 256
 
     
     # adjust range and non-linear response of parameters
@@ -765,7 +766,7 @@ def transfer_graytone_to_color(image_color, image_graytone, verbose=False):
     '''
     
 
-    EPSILON = 1 / 255
+    EPSILON = 1 / 256
     
     # bring both color and graytone to linear space
     image_color_linear = srgb_to_linear(image_color.copy(), verbose=False)
@@ -1027,6 +1028,105 @@ def correct_colors(image, verbose):
 
 
 
+def adjust_brightness(image, degree=0, verbose=False):
+    '''
+    ---------------------------------------------------------------------------
+                  Apply global tone mapping on a grayscale image
+    ---------------------------------------------------------------------------
+    
+    Applies a single tone mapping curve in all the pixels of a grayscale image. 
+    Depending on the parameters, the image can be brighten or darken. The set
+    of curves used are similar to gamma functions, but are inspired from the 
+    Naka-Rushton function and exhibit symmetry and better local contrast. More 
+    information about the technique can be found in the following papers:
+    
+    Related publications: 
+    Vonikakis, V., Winkler, S. (2016). A center-surround framework for spatial 
+    image processing. Proc. IS&T Human Vision & Electronic Imaging.
+    
+    INPUTS
+    ------
+    image: numpy array of WxH of float [0,1]
+        Input grayscale image with values in the interval [0,1].
+    degree: float [-1,1]
+        The strength of the uniform tone mapping function. 
+        [-1,0): darken image. Closer to -1 means more agressive darkening
+             0: Unchanged tones     
+         (0,1]: brighten image. Closer to 1 means more agressive brightening
+    verbose: boolean
+        Display outputs.
+    
+    OUTPUT
+    ------
+    image_tonemapped: numpy array of WxH of float [0,1]
+        Tonemapped grayscale image. 
+        
+    '''
+    
+    
+    EPSILON = 1 / 256  # what we consider minimum value
+    
+    # adjust range and non-linear response of parameters
+    # unpack information: darken or brighten and the degree
+    if degree > 0:
+        brighten = True
+    else:
+        brighten = False
+    
+    degree = abs(degree)  # [0,1]
+    
+    alpha = map_value(
+            value=degree, 
+            range_in=(0,1), 
+            range_out=(0,5),   # from the paper: 5x brings close to linear
+            invert=True,  # from the paper
+            non_lin_convex=0.05,  # adding linearity to the response
+            non_lin_concave=None
+            )
+    
+    alpha = alpha + EPSILON  # to avoid division by zero
+    
+
+    # applying global tone-mapping
+    if degree != 0:
+        image_brightness = image.copy()
+        
+        if brighten is True:
+            image_brightness = ((image_brightness * (alpha + 1)) / 
+                                (alpha + image_brightness))
+        else:
+            image_brightness = ((image_brightness * alpha) / 
+                                (alpha + 1 - image_brightness)) 
+    else: image_brightness = image
+
+
+    
+    if verbose is True:
+        
+        plt.figure()
+        
+        plt.subplot(1,2,1)
+        plt.imshow(image, cmap='gray', vmin=0, vmax=1)
+        plt.title('Input image')
+        plt.axis('off')
+        
+        plt.subplot(1,2,2)
+        plt.imshow(image_brightness, cmap='gray', vmin=0, vmax=1)
+        plt.title('Adjusted brightness image')
+        plt.axis('off')
+        
+        plt.tight_layout(True)
+        plt.suptitle('Adjusting brightness')
+        plt.show()
+
+
+    return image_brightness
+    
+    
+
+
+
+
 def enhance_image(image, parameters, verbose=False):
     
     '''
@@ -1064,6 +1164,10 @@ def enhance_image(image, parameters, verbose=False):
         'areas_bright': float [0,1]
               0: no enhancement 
               1: strongest enhancement
+        'brightness': float [-1,1]
+           >=-1: darken image
+              0: unchanged      
+            <=1: brighten image
         'preserve_tones': boolean
         'color_correction': boolean
         'saturation_degree': float [0,inf]. 
@@ -1083,6 +1187,60 @@ def enhance_image(image, parameters, verbose=False):
 
 
     #TODO: add an automatic parameter estimation stage (machine learning)
+    
+    
+    # sanity check for type, range and defaults
+    
+    if 'local_contrast' in parameters:
+        parameters['local_contrast'] = float(parameters['local_contrast'])
+        if parameters['local_contrast'] < 0: parameters['local_contrast'] = 0
+    else: parameters['local_contrast'] = 1.2 # default: slight increase
+    
+    if 'mid_tones' in parameters:
+        parameters['mid_tones'] = float(parameters['mid_tones'])
+        if parameters['mid_tones'] > 1: parameters['mid_tones'] = 1
+        if parameters['mid_tones'] < 0: parameters['mid_tones'] = 0
+    else: parameters['mid_tones'] = 0.5  # default: middle of the range
+    
+    if 'tonal_width' in parameters:
+        parameters['tonal_width'] = float(parameters['tonal_width'])
+        if parameters['tonal_width'] > 1: parameters['tonal_width'] = 1
+        if parameters['tonal_width'] < 0: parameters['tonal_width'] = 0
+    else: parameters['tonal_width'] = 0.5  # default: middle of the range
+    
+    if 'areas_dark' in parameters:
+        parameters['areas_dark'] = float(parameters['areas_dark'])
+        if parameters['areas_dark'] > 1: parameters['areas_dark'] = 1
+        if parameters['areas_dark'] < 0: parameters['areas_dark'] = 0
+    else: parameters['areas_dark'] = 0.2  # default: gentle increase
+    
+    if 'areas_bright' in parameters:
+        parameters['areas_bright'] = float(parameters['areas_bright'])
+        if parameters['areas_bright'] > 1: parameters['areas_bright'] = 1
+        if parameters['areas_bright'] < 0: parameters['areas_bright'] = 0
+    else: parameters['areas_bright'] = 0.2  # default: gentle increase
+    
+    if 'brightness' in parameters:
+        parameters['brightness'] = float(parameters['brightness'])
+        if parameters['brightness'] > 1: parameters['brightness'] = 1
+        if parameters['brightness'] < -1: parameters['brightness'] = -1
+    else: parameters['brightness'] = 0.1  # default: gentle increase
+    
+    if 'preserve_tones' in parameters:
+        parameters['preserve_tones'] = bool(parameters['preserve_tones'])
+    else: parameters['preserve_tones'] = True  # default: preserve tones
+    
+    if 'color_correction' in parameters:
+        parameters['color_correction'] = bool(parameters['color_correction'])
+    else: parameters['color_correction'] = False  # default: no correction
+    
+    if 'saturation_degree' in parameters:
+        parameters['saturation_degree'] = float(parameters['saturation_degree'])
+        if parameters['saturation_degree'] < 0: parameters['saturation_degree'] = 0
+    else: parameters['saturation_degree'] = 1.2 # default: slight increase
+        
+    
+
 
     # get photometric mask, as a guide for spatial-tone mapping
     image_ph_mask = get_photometric_mask(
@@ -1110,10 +1268,16 @@ def enhance_image(image, parameters, verbose=False):
             verbose=verbose
             )
     
+    image_brightness = adjust_brightness(
+        image_tonemapped, 
+        degree=parameters['brightness'], 
+        verbose=verbose
+        )
+    
     # transfer the enhancement on the color image (in the linear color space)
     image_colortone = transfer_graytone_to_color(
             image_color=image, 
-            image_graytone=image_tonemapped, 
+            image_graytone=image_brightness, 
             verbose=verbose
             )
     
@@ -1189,8 +1353,9 @@ if __name__=="__main__":
     parameters['tonal_width'] = 0.5
     parameters['areas_dark'] = 0.7  # 70% improvement in dark areas
     parameters['areas_bright'] = 0.5  # 50% improvement in bright areas
-    parameters['preserve_tones'] = True
     parameters['saturation_degree'] = 1.2  # 1.2x increase in color saturation
+    parameters['brightness'] = 0.1  # slight increase in brightness
+    parameters['preserve_tones'] = True
     parameters['color_correction'] = False
     image_enhanced = enhance_image(image, parameters, verbose=False)
     
