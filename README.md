@@ -4,6 +4,7 @@ Library of NumPy-based Image Processing functions for various types of Image Enh
 - Local Contrast Enhencement
 - Color Correction (White Balance)
 - Color Saturation Adjustment
+- Exposure Fusion
 
 # Examples:
 ![Example1](images/Figure_1.png "Example1")
@@ -32,6 +33,7 @@ Library of NumPy-based Image Processing functions for various types of Image Enh
 │   ├── example_color_correction.py            [Example of applying color correction]
 │   ├── example_enhance_image.py               [Example of combined image enhancement]
 │   ├── example_local_contrast_enhancement.py  [Example of applying increasing local details]
+|   ├── example_blend_exposures.py             [Example of blending multiple image exposures]
 │   └── example_medical_image.py               [Example of processing medical images]
 └── images                                     [Directory: Sample test images]
 ```
@@ -52,3 +54,4 @@ If you use this code in your research please cite the following papers:
 2. [Vonikakis, V., Winkler, S. (2016). A center-surround framework for spatial image processing. Proc. IS&T Human Vision & Electronic Imaging, (Retinex020), San Francisco, CA, Feb. 14-18.](http://vintage.winklerbros.net/Publications/ei2016hvei.pdf)
 3. [Vonikakis, V., Arapakis, I. & Andreadis, I. (2011).Combining Gray-World assumption, White-Point correction and power transformation for automatic white balance. International Workshop on Advanced Image Technology (IWAIT), 1569353295.](https://www.researchgate.net/publication/235350557_Combining_Gray-World_assumption_White-Point_correction_and_power_transformation_for_automatic_white_balance)
 4. [Vonikakis, V., & Andreadis, I. (2008). Multi-Scale Image Contrast Enhancement. ICARCV 2008. (pp. 385-391).](https://www.researchgate.net/publication/221145067_Multi-Scale_Image_Contrast_Enhancement)
+5. [Vonikakis, V., Bouzos, O. & Andreadis, I. (2011). Multi-Exposure Image Fusion Based on Illumination Estimation, SIPA2011 (pp.135-142).](https://www.researchgate.net/publication/235350562_Multi-Exposure_Image_Fusion_Based_on_Illumination_Estimation#share)
