@@ -14,6 +14,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from skimage.color import rgb2gray
 from skimage import img_as_float
+from skimage.exposure import rescale_intensity, adjust_gamma
 
 
 plt.close('all')
@@ -95,7 +96,112 @@ def map_value(
     value = value * (range_out[1] - range_out[0]) + range_out[0]
     
     return value
+
+
+
+
+
+def get_membership_luts(
+        resolution=256, 
+        lower_threshold=0.35, 
+        upper_threshold=0.65,
+        verbose=False):
     
+    '''
+    ---------------------------------------------------------------------------
+               Creates 3 paramteric traspezoid membership functions
+    ---------------------------------------------------------------------------
+    
+    The trapezoid functions are defined as piece-wise functions between the
+    0, lower_threshold, upper_threshold, 1. These trapezoid membership 
+    functions can be used to filter out which parts of each exposure to be 
+    used during exposure fusion. More details can be found in the following 
+    paper: 
+        
+    Vonikakis, V., Bouzos, O. & Andreadis, I. (2011). Multi-Exposure Image 
+    Fusion Based on Illumination Estimation, SIPA2011 (pp.135-142), Greece.
+    
+    
+    INPUTS
+    ------
+    resolution: int
+        The size of the LUT (how many inputs).
+    lower_threshold: float in the range [0,1]
+        The position of the lower inflection point of the trapezoid functions.
+        It should be always lower compared to the upper_threshold.  
+    upper_threshold: float in the range [0,1]
+        The position of the upper inflection point of the trapezoid functions.
+        It should be always higher compared to the lower_threshold.  
+    verbose: boolean
+        Display outputs.
+    
+    OUTPUT
+    ------
+    lut_lower: float numpy array of size equal to resolution, values in [0,1]
+        The lower trepezoid membership function. 
+    lut_mid: float numpy array of size equal to resolution, values in [0,1]
+        The middle trepezoid membership function. 
+    lut_upper float numpy array of size equal to resolution, values in [0,1]
+        The upper trepezoid membership function. 
+        
+    '''
+
+    
+    lut_lower = np.zeros(resolution, dtype='float')
+    lut_mid = np.zeros(resolution, dtype='float')
+    lut_upper = np.zeros(resolution, dtype='float')
+    
+    for i in range(resolution):
+        
+        i_float = i / (resolution - 1)
+        
+        # lower trapezoid membership function
+        if i_float <= lower_threshold:
+            lut_lower[i] = i_float / lower_threshold
+        else:
+            lut_lower[i] = 1
+            
+        # middle trapezoid membership function
+        if i_float <= lower_threshold:
+            lut_mid[i] = i_float / lower_threshold
+        elif i_float <= upper_threshold:
+            lut_mid[i] = 1
+        else:
+            lut_mid[i] = (1 - i_float) / (1 - upper_threshold)
+            
+        # upper trapezoid membership function
+        if i_float <= upper_threshold:
+            lut_upper[i] = 1
+        else:
+            lut_upper[i] = (1 - i_float) / (1 - upper_threshold)
+        
+        
+    if verbose is True:
+        plt.figure()
+        
+        plt.subplot(1,3,1)
+        plt.plot(lut_lower)
+        plt.title('Lower')
+        plt.grid(True)
+        
+        plt.subplot(1,3,2)
+        plt.plot(lut_mid)
+        plt.title('Middle')
+        plt.grid(True)
+        
+        plt.subplot(1,3,3)
+        plt.plot(lut_upper)
+        plt.title('Upper')
+        plt.grid(True)
+        
+        plt.suptitle('Trapezoid membership functions')
+        plt.show()
+        
+    return lut_lower, lut_mid, lut_upper
+
+
+
+
 
 
 
@@ -135,8 +241,8 @@ def get_sigmoid_lut(
     
     OUTPUT
     ------
-    image_ph_mask: numpy array of WxH of float [0,1]
-        Photometric mask of the input image. 
+    lut: float numpy array of size equal to resolution
+        The output sigmoid lut. 
         
     '''
 
@@ -144,6 +250,7 @@ def get_sigmoid_lut(
     thr = threshold * max_value  # threshold in the range [0,resolution-1]
     alpha = non_linearirty * max_value  # controls non-linearity degree
     beta = max_value - thr
+    if beta == 0: beta = 0.001
     
     lut = np.zeros(resolution, dtype='float')
     
@@ -175,7 +282,11 @@ def get_sigmoid_lut(
     
 
 
-def get_photometric_mask(image, verbose=False):      
+def get_photometric_mask(
+        image, 
+        smoothing=0.2, 
+        grayscale_out=True, 
+        verbose=False):      
     '''
     ---------------------------------------------------------------------------
       Estimate the photometric mask of an image by using edge-aware blurring
@@ -189,14 +300,24 @@ def get_photometric_mask(image, verbose=False):
     
     INPUTS
     ------
-    image: numpy array of WxHx3 of float [0,1]
-        Input color image with values in the interval [0,1].
+    image: numpy array (WxH or WxHxK of uint8 [0.255] or float [0,1])
+        Input image.
+    smoothing: float in the interval [0,1]
+        Value controlling the blur's strenght. 0 indicates no blur. Values 
+        between 0-1 increase blurring strength while preserving edges. Values 
+        above 1 approximate very strong gaussian blurring (large sigmas) where 
+        no edges are preserved. Practically, values above 10 result into a
+        uniform image.
+    grayscale_out: logical
+        Whether or not the photometric mask is going to be grayscale or not.
+        If the input image is already grayscale (2D) then this parameter is 
+        irrelevant.
     verbose: boolean
         Display outputs.
     
     OUTPUT
     ------
-    image_ph_mask: numpy array of WxH of float [0,1]
+    image_ph_mask: numpy array of WxH or WxHxK of float [0,1]
         Photometric mask of the input image. 
         
     '''
@@ -214,9 +335,9 @@ def get_photometric_mask(image, verbose=False):
     
     
     # internal parameters
-    THR_A = 50 / 255
-    THR_B = 10 / 255
-    NON_LIN = 30 / 255
+    THR_A = smoothing
+    THR_B = 0.04  # ~10/255
+    NON_LIN = 0.12  # ~30/255
     LUT_RES = 256
     
     # get sigmoid LUTs
@@ -238,47 +359,62 @@ def get_photometric_mask(image, verbose=False):
     
     # dealing with different number of channels
     if len(image.shape) == 3:
-        image_ph_mask = rgb2gray(image.copy())  # [0,1]
+        if grayscale_out is True:
+            image_ph_mask = rgb2gray(image.copy())  # [0,1] 2D
+        else:
+            image_ph_mask = img_as_float(image.copy())  # [0,1] 3D
+    elif len(image.shape) == 2:
+        image_ph_mask = img_as_float(image.copy())  # [0,1] 2D
     else:
-        image_ph_mask = image.copy().astype(float)
-        image_ph_mask /= image_ph_mask.max()  # [0,1]
+         image_ph_mask = img_as_float(image.copy())  # [0,1] ?D
+         
+    # if image is 2D, expand dimensions to 3D for code compatibility
+    # (filtering assumes a 3D image)
+    if len(image_ph_mask.shape) == 2:
+        image_ph_mask = np.expand_dims(image_ph_mask, axis=2)
+    
         
     # robust recursive envelope
     
     # up -> down
     for i in range(1, image_ph_mask.shape[0]-1):
-        d = np.abs(image_ph_mask[i-1,:] - image_ph_mask[i+1,:])  # local diff
+        d = np.abs(image_ph_mask[i-1,:,:] - image_ph_mask[i+1,:,:])  # diff
         d = lut_a[(d * lut_a_max).astype(int)]
-        image_ph_mask[i,:] = ((image_ph_mask[i,:] * d) + 
-                              (image_ph_mask[i-1,:] * (1-d)))
+        image_ph_mask[i,:,:] = ((image_ph_mask[i,:,:] * d) + 
+                              (image_ph_mask[i-1,:,:] * (1-d)))
         
     # left -> right
     for j in range(1, image_ph_mask.shape[1]-1):
-        d = np.abs(image_ph_mask[:,j-1] - image_ph_mask[:,j+1])  # local diff
+        d = np.abs(image_ph_mask[:,j-1,:] - image_ph_mask[:,j+1,:])  # diff
         d = lut_a[(d * lut_a_max).astype(int)]
-        image_ph_mask[:,j] = ((image_ph_mask[:,j] * d) + 
-                              (image_ph_mask[:,j-1] * (1-d)))
+        image_ph_mask[:,j,:] = ((image_ph_mask[:,j,:] * d) + 
+                              (image_ph_mask[:,j-1,:] * (1-d)))
         
     # down -> up
     for i in range(image_ph_mask.shape[0]-2, 1, -1):
-        d = np.abs(image_ph_mask[i-1,:] - image_ph_mask[i+1,:])  # local diff
+        d = np.abs(image_ph_mask[i-1,:,:] - image_ph_mask[i+1,:,:])  # diff
         d = lut_a[(d * lut_a_max).astype(int)]
-        image_ph_mask[i,:] = ((image_ph_mask[i,:] * d) + 
-                              (image_ph_mask[i+1,:] * (1-d)))
+        image_ph_mask[i,:,:] = ((image_ph_mask[i,:,:] * d) + 
+                              (image_ph_mask[i+1,:,:] * (1-d)))
         
     # right -> left
     for j in range(image_ph_mask.shape[1]-2, 1, -1):
-        d = np.abs(image_ph_mask[:,j-1] - image_ph_mask[:,j+1])  # local diff
+        d = np.abs(image_ph_mask[:,j-1,:] - image_ph_mask[:,j+1,:])  # diff
         d = lut_b[(d * lut_b_max).astype(int)]
-        image_ph_mask[:,j] = ((image_ph_mask[:,j] * d) + 
-                              (image_ph_mask[:,j+1] * (1-d)))
+        image_ph_mask[:,j,:] = ((image_ph_mask[:,j,:] * d) + 
+                              (image_ph_mask[:,j+1,:] * (1-d)))
           
     # up -> down
     for i in range(1, image_ph_mask.shape[0]-1):
-        d = np.abs(image_ph_mask[i-1,:] - image_ph_mask[i+1,:])  # local diff
+        d = np.abs(image_ph_mask[i-1,:,:] - image_ph_mask[i+1,:,:])  # diff
         d = lut_b[(d * lut_b_max).astype(int)]
-        image_ph_mask[i,:] = ((image_ph_mask[i,:] * d) + 
-                              (image_ph_mask[i-1,:] * (1-d)))
+        image_ph_mask[i,:,:] = ((image_ph_mask[i,:,:] * d) + 
+                              (image_ph_mask[i-1,:,:] * (1-d)))
+    
+    
+    # convert back to 2D if grayscale is needed
+    if grayscale_out is True:
+        image_ph_mask = np.squeeze(image_ph_mask)
     
 
     if verbose is True:
@@ -290,7 +426,10 @@ def get_photometric_mask(image, verbose=False):
         plt.axis('off')
         
         plt.subplot(1,2,2)
-        plt.imshow(image_ph_mask, cmap='gray', vmin=0, vmax=1)
+        if grayscale_out is True:
+            plt.imshow(image_ph_mask, cmap='gray', vmin=0, vmax=1)
+        else:
+            plt.imshow(image_ph_mask, vmin=0, vmax=1)
         plt.title('Photometric mask')
         plt.axis('off')
         
@@ -302,6 +441,406 @@ def get_photometric_mask(image, verbose=False):
     return image_ph_mask
 
 
+
+
+
+
+def blend_expoures(
+        exposure_list, 
+        threshold_dark=0.35, 
+        threshold_bright=0.65, 
+        verbose=False
+        ):
+    
+    '''
+    ---------------------------------------------------------------------------
+                 Blend a collection of exposures to a single image
+    ---------------------------------------------------------------------------
+    
+    Function to blend a list of image exposures, using illumination estimation
+    across 2 spatial scales.
+    
+    Based on the following paper:
+    Vonikakis, V., Bouzos, O. & Andreadis, I. (2011). Multi-Exposure Image 
+    Fusion Based on Illumination Estimation, SIPA2011 (pp.135-142), Greece.    
+    
+    
+    INPUTS
+    ------
+    exposure_list: list of numpy image arrays
+        List of numpy arrays (image exposures) which will be blended. Arrays
+        can be either grayscale, or color (3 channels).
+    threshold_dark: float in the interval [0,1]
+        Lower threshold for the membership function which will be applied to 
+        the brightest exposure (long exposure). See above paper for more info.
+        threshold_dark < threshold_bright
+    threshold_bright: float in the interval [0,1]
+        Higher threshold for the membership function which will be applied to 
+        the darkest exposure (short exposure). See above paper for more info.
+        threshold_bright > threshold_dark
+    verbose: boolean
+        Display outputs.
+    
+    OUTPUT
+    ------
+    exposure_out: numpy array, float [0,1]
+        Output image of the blended exposures. If input images are grayscale,
+        exposure_out is also grayscale. If input images are color, then 
+        exposure_out is also color.
+        
+    '''
+    
+    # internal constants
+    SCALE_COARSE = 0.6  # [0,1], 0->fine, 1->coarse
+    SCALE_FINE = 0.2  # [0,1], 0->fine, 1->coarse
+    LUMINANCE_MIDDLE = 0.5  # middle of the luminance scale in [0,1]
+    GAMA_MAX = 2  # max gama to be used for darkening images
+    GAMA_MIN = 0.2  # min gama to be used for brightening images
+    LUT_RESOLUTION = 256
+    
+    total_exposures = len(exposure_list)
+    
+    # color or grayscale
+    if len(exposure_list[0].shape) > 2:  # check the 1st image of the list
+        color_exposures = True
+    else:
+        color_exposures = False
+    
+    
+    #--- sort exposures from darkest to brightest
+    
+    exposure_list_gray = []
+    mean_luminance_list = []
+    
+    if color_exposures is True:
+        exposure_list_red = []
+        exposure_list_green = []
+        exposure_list_blue = []
+        
+    
+    for image in exposure_list:
+        image_gray = rgb2gray(image)
+        exposure_list_gray.append(image_gray)  # grayscale
+        mean_luminance_list.append(image_gray.mean())  # mean luminance
+        if color_exposures is True:
+            exposure_list_red.append(img_as_float(image[:,:,0]))  # red
+            exposure_list_green.append(img_as_float(image[:,:,1]))  # green 
+            exposure_list_blue.append(img_as_float(image[:,:,2]))  # blue
+        
+    
+    # sort according to mean luminance
+    indx_lum_ascending = sorted(
+        range(len(mean_luminance_list)), 
+        key=lambda i: mean_luminance_list[i]  
+        )
+    
+    if verbose is True:
+        print('Darkest to brightest exposure sequence:', indx_lum_ascending)
+    
+
+    
+    # convert into a numpy array of hight x width x number of exposures
+    # (the 3rd dimension has the separate grayscale or color exposures)
+    exposure_array_gray = np.array(exposure_list_gray)
+    exposure_array_gray = np.moveaxis(exposure_array_gray, 0, -1)
+    exposure_array_gray = exposure_array_gray[:,:,indx_lum_ascending]
+    
+    if color_exposures is True:
+    
+        exposure_array_red = np.array(exposure_list_red)  
+        exposure_array_red = np.moveaxis(exposure_array_red, 0, -1)
+        exposure_array_red = exposure_array_red[:,:,indx_lum_ascending]
+        
+        exposure_array_green = np.array(exposure_list_green)  
+        exposure_array_green = np.moveaxis(exposure_array_green, 0, -1)
+        exposure_array_green = exposure_array_green[:,:,indx_lum_ascending]
+        
+        exposure_array_blue = np.array(exposure_list_blue)  
+        exposure_array_blue = np.moveaxis(exposure_array_blue, 0, -1)
+        exposure_array_blue = exposure_array_blue[:,:,indx_lum_ascending]
+    
+    
+    
+    #--- generate illumination estimation in 2 spatial scales
+    
+    illumination_coarse = get_photometric_mask(
+        exposure_array_gray.copy(), 
+        smoothing=SCALE_COARSE, 
+        grayscale_out=False,  # estimaste each channel separately
+        verbose=False)
+    
+    illumination_fine = get_photometric_mask(
+        exposure_array_gray.copy(), 
+        smoothing=SCALE_FINE, 
+        grayscale_out=False,  # estimaste each channel separately
+        verbose=False)
+    
+    
+    # min max normalization for each exposure. 
+    # make sure that each exposure has a 0 and 1 somewhere
+    
+    for i in range(total_exposures):
+        
+        illumination_coarse[:,:,i] = rescale_intensity(
+            illumination_coarse[:,:,i],
+            in_range='image',
+            out_range='dtype'
+            )
+        
+        illumination_fine[:,:,i] = rescale_intensity(
+            illumination_fine[:,:,i],
+            in_range='image',
+            out_range='dtype'
+            )
+    
+    
+    #--- Autoadjusting extreme exposures
+    # (This would be better if done in a data-driven way)
+    # if darkest exposure is too bright, darken it
+    # if brightest exposure is too dark, brighten it
+    
+    # darkest: if mean_lum>0.5 (too bright) 
+    # scale gamma linearly in the interval [1, GAMA_MAX]
+    mean_lum = illumination_coarse[:,:,0].mean()
+    if mean_lum > LUMINANCE_MIDDLE:
+        gamma_new = map_value(
+            mean_lum, 
+            range_in=(LUMINANCE_MIDDLE,1), 
+            range_out=(1,GAMA_MAX)
+            )
+        if verbose:
+            print(
+                'Darkest coarse exposure too bright! Applying gamma:', 
+                gamma_new
+                )
+        illumination_coarse[:,:,0] = adjust_gamma(
+        image = illumination_coarse[:,:,0], 
+        gamma = gamma_new
+        ) 
+        
+    mean_lum = illumination_fine[:,:,0].mean()
+    if mean_lum > LUMINANCE_MIDDLE:
+        gamma_new = map_value(
+            mean_lum, 
+            range_in=(LUMINANCE_MIDDLE,1), 
+            range_out=(1,GAMA_MAX)
+            )
+        if verbose: 
+            print(
+                'Darkest fine exposure too bright! Applying gamma:', 
+                gamma_new
+                )
+        illumination_fine[:,:,0] = adjust_gamma(
+            image = illumination_fine[:,:,0], 
+            gamma = gamma_new
+            )
+    
+    # brightest: if mean_lum<0.5 (too dark) 
+    # scale gamma linearly in the interval [GAMA_MIN, 1]
+    mean_lum = illumination_coarse[:,:,-1].mean()
+    if mean_lum < LUMINANCE_MIDDLE:
+        gamma_new = map_value(
+            mean_lum, 
+            range_in=(0,LUMINANCE_MIDDLE), 
+            range_out=(GAMA_MIN,1)
+            )
+        if verbose:
+            print(
+                'Brightest coarse exposure too dark! Applying gamma:', 
+                gamma_new
+                )
+        illumination_coarse[:,:,-1] = adjust_gamma(
+            image = illumination_coarse[:,:,-1], 
+            gamma = gamma_new
+            )
+    
+    mean_lum = illumination_fine[:,:,-1].mean()
+    if mean_lum < LUMINANCE_MIDDLE:
+        gamma_new = map_value(
+            mean_lum, 
+            range_in=(0,LUMINANCE_MIDDLE), 
+            range_out=(GAMA_MIN,1)
+            )
+        if verbose:
+            print(
+                'Brightest fine exposure too dark! Applying gamma:', 
+                gamma_new
+                )
+        illumination_fine[:,:,-1] = adjust_gamma(
+            image = illumination_fine[:,:,-1], 
+            gamma = gamma_new
+            )
+    
+    
+    
+    #--- Apply membership functions to illumination to get exposure weights
+    
+    # generate membership function LUTs
+    weights_lower, weights_mid, weights_upper = get_membership_luts(
+        resolution=LUT_RESOLUTION, 
+        lower_threshold=threshold_dark,  # defines lower cutofd
+        upper_threshold=threshold_bright,  # defines upper cutofd
+        verbose=verbose
+        )
+    
+    lut_resolution = len(weights_lower) - 1
+        
+    weights_coarse = np.zeros(illumination_coarse.shape, dtype=float)
+    weights_coarse[:,:,0] = (weights_lower[(illumination_coarse[:,:,0] * 
+                                            lut_resolution).astype(int)])
+    weights_coarse[:,:,1:-1] = (weights_mid[(illumination_coarse[:,:,1:-1] * 
+                                             lut_resolution).astype(int)])
+    weights_coarse[:,:,-1] = (weights_upper[(illumination_coarse[:,:,-1] * 
+                                             lut_resolution).astype(int)])
+    
+    weights_fine = np.zeros(illumination_fine.shape, dtype=float)
+    weights_fine[:,:,0] = (weights_lower[(illumination_fine[:,:,0] * 
+                                          lut_resolution).astype(int)])
+    weights_fine[:,:,1:-1] = (weights_mid[(illumination_fine[:,:,1:-1] * 
+                                           lut_resolution).astype(int)])
+    weights_fine[:,:,-1] = (weights_upper[(illumination_fine[:,:,-1] * 
+                                           lut_resolution).astype(int)])
+    
+    #TODO: apply local contrast enhancement to the exposure images, 2 times
+    # (one for each illumination scale)
+    
+    
+    #--- Weighted average of exposures based on the exposure weights
+    
+    # grayscale 
+    exposure_coarse = weights_coarse * exposure_array_gray
+    exposure_coarse = (np.sum(exposure_coarse, axis=2) / 
+                       np.sum(weights_coarse, axis=2))
+    exposure_fine = weights_fine * exposure_array_gray
+    exposure_fine = (np.sum(exposure_fine, axis=2) / 
+                     np.sum(weights_fine, axis=2))
+    exposure_out_gray = (exposure_coarse + exposure_fine) / 2
+    exposure_out = exposure_out_gray
+    
+    
+    if color_exposures is True:
+    
+        # red
+        exposure_coarse_red = weights_coarse * exposure_array_red
+        exposure_coarse_red = (np.sum(exposure_coarse_red, axis=2) / 
+                               np.sum(weights_coarse, axis=2))
+        exposure_fine_red = weights_fine * exposure_array_red
+        exposure_fine_red = (np.sum(exposure_fine_red, axis=2) / 
+                             np.sum(weights_fine, axis=2))
+        exposure_out_red = (exposure_coarse_red + exposure_fine_red) / 2
+        
+        # green
+        exposure_coarse_green = weights_coarse * exposure_array_green
+        exposure_coarse_green = (np.sum(exposure_coarse_green, axis=2) / 
+                               np.sum(weights_coarse, axis=2))
+        exposure_fine_green = weights_fine * exposure_array_green
+        exposure_fine_green = (np.sum(exposure_fine_green, axis=2) / 
+                             np.sum(weights_fine, axis=2))
+        exposure_out_green = (exposure_coarse_green + exposure_fine_green) / 2
+        
+        # blue
+        exposure_coarse_blue = weights_coarse * exposure_array_blue
+        exposure_coarse_blue = (np.sum(exposure_coarse_blue, axis=2) / 
+                               np.sum(weights_coarse, axis=2))
+        exposure_fine_blue = weights_fine * exposure_array_blue
+        exposure_fine_blue = (np.sum(exposure_fine_blue, axis=2) / 
+                             np.sum(weights_fine, axis=2))
+        exposure_out_blue = (exposure_coarse_blue + exposure_fine_blue) / 2
+    
+        # combine all blended color channels to one image
+        exposure_out_color = np.zeros(
+            (exposure_out_gray.shape[0], exposure_out_gray.shape[1], 3), 
+            dtype=float
+            )
+        exposure_out_color[:,:,0] = exposure_out_red
+        exposure_out_color[:,:,1] = exposure_out_green
+        exposure_out_color[:,:,2] = exposure_out_blue
+        exposure_out = exposure_out_color
+        
+    
+    #--- Visualizations
+    
+    if verbose is True:
+        
+        # display intermediate stages of the method
+        
+        plt.figure()
+        
+        for i in range(total_exposures):
+            
+            plt.subplot(6,total_exposures,i+1)
+            plt.imshow(exposure_array_gray[:,:,i], cmap='gray')
+            plt.title('Exposure ' + str(i))
+            plt.axis('off')
+            
+            plt.subplot(6,total_exposures,i+1+total_exposures)
+            plt.imshow(illumination_coarse[:,:,i], cmap='gray')
+            plt.title('ill.coarse ' + str(i))
+            plt.axis('off')
+            
+            plt.subplot(6,total_exposures,i+1+(total_exposures*2))
+            plt.imshow(illumination_fine[:,:,i], cmap='gray')
+            plt.title('ill.fine ' + str(i))
+            plt.axis('off')
+            
+            plt.subplot(6,total_exposures,i+1+(total_exposures*3))
+            plt.imshow(weights_coarse[:,:,i], cmap='gray')
+            plt.title('W.coarse ' + str(i))
+            plt.axis('off')
+            
+            plt.subplot(6,total_exposures,i+1+(total_exposures*4))
+            plt.imshow(weights_fine[:,:,i], cmap='gray')
+            plt.title('W.fine ' + str(i))
+            plt.axis('off')
+
+        plt.subplot(6,total_exposures,1+(total_exposures*5))
+        plt.imshow(exposure_coarse, cmap='gray')
+        plt.title('Coarse blended')
+        plt.axis('off')
+        
+        plt.subplot(6,total_exposures,2+(total_exposures*5))
+        plt.imshow(exposure_fine, cmap='gray')
+        plt.title('Fine blended')
+        plt.axis('off')
+        
+        plt.subplot(6,total_exposures,3+(total_exposures*5))
+        plt.imshow(exposure_out_gray, cmap='gray')
+        plt.title('Final blend')
+        plt.axis('off')
+
+        plt.suptitle('List of exposures')
+        plt.tight_layout()
+        plt.tight_layout()
+        plt.show()
+
+        # display final color result
+        plt.figure()
+        grid = plt.GridSpec(total_exposures, total_exposures)
+        if color_exposures is False: 
+            cmap = 'gray'
+        else:
+            cmap = None
+        
+        for i in range(total_exposures):
+            plt.subplot(grid[0,i])
+            plt.imshow(exposure_list[indx_lum_ascending[i]], cmap=cmap)
+            plt.title('Exposure ' + str(i))
+            plt.axis('off')
+                
+        plt.subplot(grid[1:,:])
+        plt.imshow(exposure_out, cmap=cmap)
+        plt.title('Final blend')
+        plt.axis('off')
+        plt.tight_layout()
+        plt.suptitle('Full color blend')
+        plt.show()
+        
+
+    return exposure_out
+    
+    
+    
+    
 
 
 
@@ -1334,6 +1873,22 @@ def enhance_image(image, parameters, verbose=False):
     
     
     return image_colortone_saturation
+
+
+
+
+
+
+
+# def fuse_exposures(ls_images):
+    
+    
+    
+    
+    
+
+
+
 
 
 

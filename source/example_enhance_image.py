@@ -20,11 +20,12 @@ from image_enhancement import enhance_image
 if __name__=="__main__":
     
     # select an image
-    # filename = "../images/alhambra1.jpg"
+    filename = "../images/alhambra1.jpg"
     # filename = "../images/alhambra2.jpg"
-    filename = "../images/lisbon.jpg"
+    # filename = "../images/lisbon.jpg"
 
     image = imageio.imread(filename)  # load image
+    
     
     # setting up parameters
     parameters = {}
@@ -45,7 +46,6 @@ if __name__=="__main__":
     plt.imshow(image, vmin=0, vmax=255)
     plt.title('Input image')
     plt.axis('off')
-    plt.tight_layout()
     
     plt.subplot(1,2,2)
     plt.imshow(image_enhanced, vmin=0, vmax=255)
