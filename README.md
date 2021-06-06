@@ -41,6 +41,11 @@ Library of NumPy-based Image Processing functions for various types of Image Enh
 - imageio
 - skimage (can be easily bypassed if needed)
 
+# Dataset
+If you want to try this code in real-life challenging travel photos, please try the following dataset:
+
+[TM-DIED: The Most Difficult Image Enhancement Dataset](https://sites.google.com/site/vonikakis/datasets/tm-died)
+
 # Citations
 If you use this code in your research please cite the following papers:   
 1. [Vonikakis, V., Andreadis, I., & Gasteratos, A. (2008). Fast centre-surround contrast modification. IET Image processing 2(1), 19-34.](https://www.researchgate.net/publication/3481092_Fast_centre-surround_contrast_modification)
