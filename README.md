@@ -23,9 +23,11 @@ Library of NumPy-based Image Processing functions for various types of Image Enh
 - **transfer_graytone_to_color()**: Transfers tones from a tone-mapped grayscale image to a color image. 
 - **change_color_saturation()**: Adjusts the color vibrance of an image. 
 - **correct_colors()**: Removes color casts from images.
+- **adjust_brightness()**: Adjusts global brightness of the image.
 - **srgb_to_linear()**: Transforms image to the linear color space. 
 - **linear_to_srgb()**: Transforms image to the gamma-corrected color space. 
 - **enhance_image()**: Applies multiple stages of enhancement to an image. 
+- **blend_expoures()**: Fuses a collection of image exposures to a single well exposed image. 
 
 # Contents:
 ```tree
