@@ -12,7 +12,8 @@ Library of NumPy-based Image Processing functions for various types of Image Enh
 ![Example3](images/Figure_3.png "Example3")
 ![Example4](images/Figure_4.png "Example4")
 ![Example5](images/Figure_5.png "Example5")
-![Example6](images/Figure_6.png "Example6")
+![Example6](images/Figure_6.png "Example6")!
+![Example7](images/Figure_7.png "Example7")
 
 # Functions:
 ![/source/image_enhancement.py](/source/image_enhancement.py "/source/image_enhancement.py")  contains:
