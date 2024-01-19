@@ -1,5 +1,5 @@
 # image_enhancement
-Library of NumPy-based Image Processing functions for various types of Image Enhancement, including:
+Library of NumPy-based and CUDA-based Image Processing functions for various types of Image Enhancement, including:
 - Spatial Tone Mapping
 - Local Contrast Enhencement
 - Color Correction (White Balance)
