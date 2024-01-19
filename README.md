@@ -31,13 +31,17 @@ Library of NumPy-based Image Processing functions for various types of Image Enh
 
 # Contents:
 ```tree
-├── src                                        [Directory: Source code]
-│   ├── image_enhancement.py                   [Main script with all the functions] 
+├── source                                     [Directory: Source code]
+│   ├── image_enhancement.py                   [Main script with all the functions]
+│   ├── image_enhancement_cuda.py              [Script with ~most~ of the functions in CUDA]
 │   ├── example_color_correction.py            [Example of applying color correction]
 │   ├── example_enhance_image.py               [Example of combined image enhancement]
 │   ├── example_local_contrast_enhancement.py  [Example of applying increasing local details]
-|   ├── example_blend_exposures.py             [Example of blending multiple image exposures]
-│   └── example_medical_image.py               [Example of processing medical images]
+│   ├── example_blend_exposures.py             [Example of blending multiple image exposures]
+│   ├── example_medical_image.py               [Example of processing medical images]
+│   ├── cuda
+│   │  ├── image_enhancement.cu.h              [Header file for CUDA implementation]
+│   │  └── image_enhancement.cu                [Implementation of image enhancement in CUDA]
 └── images                                     [Directory: Sample test images]
 ```
 
@@ -45,11 +49,20 @@ Library of NumPy-based Image Processing functions for various types of Image Enh
 - numpy
 - imageio
 - skimage (can be easily bypassed if needed)
+- Pillow (optional: only needed for running `image_enhancement_cuda.py`)
+- pycuda (optional: only needed for running `image_enhancement_cuda.py`)
 
 # Dataset
 If you want to try this code in real-life challenging travel photos, please try the following dataset:
 
 [TM-DIED: The Most Difficult Image Enhancement Dataset](https://sites.google.com/site/vonikakis/datasets/tm-died)
+
+# Building CUDA code
+The Python code loads a compiled cuda binary (`.cubin`) and runs the CUDA kernels using numpy arrays. Replace `[arch]` in the code below to compile the CUDA code (e.g. `-arch=sm_72`).
+
+    nvcc --cubin -arch=[arch] -use_fast_math -O3 source/cuda/image_enhancement.cu -o source/image_enhancement.cubin
+
+With `image_enhancement.cubin` in `source`, you can run `source/image_enhancement_cuda.py` to generate an enchanced version of `alhambra1.jpg`.
 
 # Citations
 If you use this code in your research please cite the following papers:   
