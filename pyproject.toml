@@ -29,6 +29,8 @@ plot = ["matplotlib>=3.5"]
 # CUDA pipeline (cuda/image_enhancement_cuda.py); requires an NVIDIA GPU
 # and a compiled .cubin, see README
 cuda = ["pycuda", "Pillow"]
+# numba-accelerated photometric mask (bit-exact, ~10x faster)
+fast = ["numba>=0.59"]
 # development: tests and lint
 dev = ["pytest>=7", "ruff>=0.4"]
 

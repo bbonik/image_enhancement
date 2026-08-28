@@ -34,6 +34,8 @@ from skimage.color import rgb2gray
 from skimage import img_as_float
 from skimage.exposure import rescale_intensity, adjust_gamma
 
+from image_enhancement._envelope import apply_recursive_envelope
+
 
 #TODO: better memory management!!!! Too many copying of images. 
 #something like "inplace"?
@@ -382,14 +384,12 @@ def get_photometric_mask(
             non_linearirty=NON_LIN, 
             verbose=verbose
             )
-    lut_a_max = len(lut_a) -1
     lut_b = get_sigmoid_lut(
             resolution=LUT_RES, 
             threshold=THR_B, 
             non_linearirty=NON_LIN, 
             verbose=verbose
             )
-    lut_b_max = len(lut_b) -1
     
     
     # dealing with different number of channels
@@ -409,42 +409,10 @@ def get_photometric_mask(
         image_ph_mask = np.expand_dims(image_ph_mask, axis=2)
     
         
-    # robust recursive envelope
-    
-    # up -> down
-    for i in range(1, image_ph_mask.shape[0]-1):
-        d = np.abs(image_ph_mask[i-1,:,:] - image_ph_mask[i+1,:,:])  # diff
-        d = lut_a[(d * lut_a_max).astype(int)]
-        image_ph_mask[i,:,:] = ((image_ph_mask[i,:,:] * d) + 
-                              (image_ph_mask[i-1,:,:] * (1-d)))
-        
-    # left -> right
-    for j in range(1, image_ph_mask.shape[1]-1):
-        d = np.abs(image_ph_mask[:,j-1,:] - image_ph_mask[:,j+1,:])  # diff
-        d = lut_a[(d * lut_a_max).astype(int)]
-        image_ph_mask[:,j,:] = ((image_ph_mask[:,j,:] * d) + 
-                              (image_ph_mask[:,j-1,:] * (1-d)))
-        
-    # down -> up
-    for i in range(image_ph_mask.shape[0]-2, 1, -1):
-        d = np.abs(image_ph_mask[i-1,:,:] - image_ph_mask[i+1,:,:])  # diff
-        d = lut_a[(d * lut_a_max).astype(int)]
-        image_ph_mask[i,:,:] = ((image_ph_mask[i,:,:] * d) + 
-                              (image_ph_mask[i+1,:,:] * (1-d)))
-        
-    # right -> left
-    for j in range(image_ph_mask.shape[1]-2, 1, -1):
-        d = np.abs(image_ph_mask[:,j-1,:] - image_ph_mask[:,j+1,:])  # diff
-        d = lut_b[(d * lut_b_max).astype(int)]
-        image_ph_mask[:,j,:] = ((image_ph_mask[:,j,:] * d) + 
-                              (image_ph_mask[:,j+1,:] * (1-d)))
-          
-    # up -> down
-    for i in range(1, image_ph_mask.shape[0]-1):
-        d = np.abs(image_ph_mask[i-1,:,:] - image_ph_mask[i+1,:,:])  # diff
-        d = lut_b[(d * lut_b_max).astype(int)]
-        image_ph_mask[i,:,:] = ((image_ph_mask[i,:,:] * d) + 
-                              (image_ph_mask[i-1,:,:] * (1-d)))
+    # robust recursive envelope (5 directional passes; see _envelope.py).
+    # Uses a bit-exact numba-compiled kernel when numba is installed
+    # (pip install ".[fast]"), else the original NumPy implementation.
+    image_ph_mask = apply_recursive_envelope(image_ph_mask, lut_a, lut_b)
     
     
     # convert back to 2D if grayscale is needed
