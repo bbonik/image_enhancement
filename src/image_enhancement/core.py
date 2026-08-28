@@ -6,7 +6,27 @@ Created on Fri Jun 19 09:40:58 2020
 Image enhancement functions
 
 @author: Vasileios Vonikakis (bbonik@gmail.com)
+
+
+DATA CONVENTIONS
+----------------
+Input/output ranges and dtypes intentionally differ between functions and
+are part of the API (do not "normalize" them):
+
+- Grayscale operators (apply_local_contrast_enhancement,
+  apply_spatial_tonemapping, adjust_brightness) work on float [0,1] images
+  and return float [0,1].
+- get_photometric_mask accepts uint8 [0,255] or float [0,1] and returns
+  float [0,1].
+- srgb_to_linear accepts uint8 [0,255] (or float [0,1]) and returns
+  float [0,1]; linear_to_srgb returns uint8 [0,255], which is efficient
+  for display and storage.
+- transfer_graytone_to_color returns uint8 [0,255] (display-ready).
+- change_color_saturation, correct_colors, enhance_image and
+  blend_exposures return float [0,1].
 """
+
+from __future__ import annotations
 
 import math
 import numpy as np
@@ -36,12 +56,12 @@ def _get_pyplot():
 
 
 def map_value(
-        value, 
-        range_in=(0,1), 
-        range_out=(0,1), 
-        invert=False, 
-        non_lin_convex=None, 
-        non_lin_concave=None):
+        value: float, 
+        range_in: tuple[float, float] = (0,1), 
+        range_out: tuple[float, float] = (0,1), 
+        invert: bool = False, 
+        non_lin_convex: float | None = None, 
+        non_lin_concave: float | None = None) -> float:
     
     '''
     ---------------------------------------------------------------------------
@@ -114,10 +134,11 @@ def map_value(
 
 
 def get_membership_luts(
-        resolution=256, 
-        lower_threshold=0.35, 
-        upper_threshold=0.65,
-        verbose=False):
+        resolution: int = 256, 
+        lower_threshold: float = 0.35, 
+        upper_threshold: float = 0.65,
+        verbose: bool = False
+        ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     
     '''
     ---------------------------------------------------------------------------
@@ -219,10 +240,10 @@ def get_membership_luts(
 
 
 def get_sigmoid_lut(
-        resolution=256, 
-        threshold=0.2, 
-        non_linearirty=0.2, 
-        verbose=False):
+        resolution: int = 256, 
+        threshold: float = 0.2, 
+        non_linearirty: float = 0.2, 
+        verbose: bool = False) -> np.ndarray:
     
     '''
     ---------------------------------------------------------------------------
@@ -297,10 +318,10 @@ def get_sigmoid_lut(
 
 
 def get_photometric_mask(
-        image, 
-        smoothing=0.2, 
-        grayscale_out=True, 
-        verbose=False):      
+        image: np.ndarray, 
+        smoothing: float = 0.2, 
+        grayscale_out: bool = True, 
+        verbose: bool = False) -> np.ndarray:      
     '''
     ---------------------------------------------------------------------------
       Estimate the photometric mask of an image by using edge-aware blurring
@@ -461,11 +482,11 @@ def get_photometric_mask(
 
 
 def blend_exposures(
-        exposure_list, 
-        threshold_dark=0.35, 
-        threshold_bright=0.65, 
-        verbose=False
-        ):
+        exposure_list: list[np.ndarray], 
+        threshold_dark: float = 0.35, 
+        threshold_bright: float = 0.65, 
+        verbose: bool = False
+        ) -> np.ndarray:
     
     '''
     ---------------------------------------------------------------------------
@@ -870,10 +891,10 @@ blend_expoures = blend_exposures
 
 
 def apply_local_contrast_enhancement(
-        image, 
-        image_ph_mask, 
-        degree=1.5, 
-        verbose=False):
+        image: np.ndarray, 
+        image_ph_mask: np.ndarray, 
+        degree: float = 1.5, 
+        verbose: bool = False) -> np.ndarray:
 
     '''
     ---------------------------------------------------------------------------
@@ -962,14 +983,14 @@ def apply_local_contrast_enhancement(
 
 
 def apply_spatial_tonemapping(
-        image, 
-        image_ph_mask, 
-        mid_tone=0.5,
-        tonal_width=0.5,
-        areas_dark=0.5,
-        areas_bright=0.5,
-        preserve_tones = True,
-        verbose=True):
+        image: np.ndarray, 
+        image_ph_mask: np.ndarray, 
+        mid_tone: float = 0.5,
+        tonal_width: float = 0.5,
+        areas_dark: float = 0.5,
+        areas_bright: float = 0.5,
+        preserve_tones: bool = True,
+        verbose: bool = True) -> np.ndarray:
     '''
     ---------------------------------------------------------------------------
        Apply spatially variable tone mapping based on the local neighborhood
@@ -1130,7 +1151,7 @@ def apply_spatial_tonemapping(
 
 
 
-def srgb_to_linear(image_srgb, verbose=False):
+def srgb_to_linear(image_srgb: np.ndarray, verbose: bool = False) -> np.ndarray:
     
     '''
     ---------------------------------------------------------------------------
@@ -1212,7 +1233,7 @@ def srgb_to_linear(image_srgb, verbose=False):
 
 
 
-def linear_to_srgb(image_linear, verbose=False):
+def linear_to_srgb(image_linear: np.ndarray, verbose: bool = False) -> np.ndarray:
     
     '''
     ---------------------------------------------------------------------------
@@ -1291,7 +1312,10 @@ def linear_to_srgb(image_linear, verbose=False):
 
 
 
-def transfer_graytone_to_color(image_color, image_graytone, verbose=False):
+def transfer_graytone_to_color(
+        image_color: np.ndarray, 
+        image_graytone: np.ndarray, 
+        verbose: bool = False) -> np.ndarray:
     
     '''
     ---------------------------------------------------------------------------
@@ -1415,10 +1439,10 @@ def transfer_graytone_to_color(image_color, image_graytone, verbose=False):
 
 
 def change_color_saturation(
-        image_color, 
-        image_ph_mask=None, 
-        sat_degree=1.5, 
-        verbose=False):
+        image_color: np.ndarray, 
+        image_ph_mask: np.ndarray | None = None, 
+        sat_degree: float = 1.5, 
+        verbose: bool = False) -> np.ndarray:
     
     '''
     ---------------------------------------------------------------------------
@@ -1518,7 +1542,7 @@ def change_color_saturation(
 
 
 
-def correct_colors(image, verbose=False):
+def correct_colors(image: np.ndarray, verbose: bool = False) -> np.ndarray:
     '''
     ---------------------------------------------------------------------------
                     Correct image colors (remove color casts)
@@ -1600,7 +1624,10 @@ def correct_colors(image, verbose=False):
 
 
 
-def adjust_brightness(image, degree=0, verbose=False):
+def adjust_brightness(
+        image: np.ndarray, 
+        degree: float = 0, 
+        verbose: bool = False) -> np.ndarray:
     '''
     ---------------------------------------------------------------------------
                   Apply global tone mapping on a grayscale image
@@ -1700,7 +1727,10 @@ def adjust_brightness(image, degree=0, verbose=False):
 
 
 
-def enhance_image(image, parameters, verbose=False):
+def enhance_image(
+        image: np.ndarray, 
+        parameters: dict, 
+        verbose: bool = False) -> np.ndarray:
     
     '''
     ---------------------------------------------------------------------------
@@ -1753,7 +1783,7 @@ def enhance_image(image, parameters, verbose=False):
     
     OUTPUT
     ------
-    image_colortone_saturation: numpy array of WxHx3 of uint8 [0,255]
+    image_colortone_saturation: numpy array of WxHx3 of float [0,1]
         Output enhanced image. 
         
     '''

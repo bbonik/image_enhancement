@@ -29,6 +29,14 @@ Library of NumPy-based and CUDA-based Image Processing functions for various typ
 - **enhance_image()**: Applies multiple stages of enhancement to an image. 
 - **blend_exposures()**: Fuses a collection of image exposures to a single well exposed image. 
 
+# Data conventions
+Input/output ranges and dtypes intentionally differ between functions and are part of the API:
+- Grayscale operators (`apply_local_contrast_enhancement`, `apply_spatial_tonemapping`, `adjust_brightness`) work on float [0,1] images and return float [0,1].
+- `get_photometric_mask` accepts uint8 [0,255] or float [0,1] and returns float [0,1].
+- `srgb_to_linear` accepts uint8 [0,255] (or float [0,1]) and returns float [0,1]; `linear_to_srgb` returns uint8 [0,255], which is efficient for display and storage.
+- `transfer_graytone_to_color` returns uint8 [0,255] (display-ready).
+- `change_color_saturation`, `correct_colors`, `enhance_image` and `blend_exposures` return float [0,1].
+
 # Contents:
 ```tree
 ├── src
