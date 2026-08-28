@@ -11,7 +11,7 @@ Example: image enhancement
 
 
 import glob
-import imageio
+import imageio.v2 as imageio
 from image_enhancement import blend_expoures
 
 

@@ -9,7 +9,7 @@ Image enhancement functions
 """
 
 import math
-import imageio
+import imageio.v2 as imageio
 import numpy as np
 import matplotlib.pyplot as plt
 from skimage.color import rgb2gray
@@ -433,7 +433,7 @@ def get_photometric_mask(
         plt.title('Photometric mask')
         plt.axis('off')
         
-        plt.tight_layout(True)
+        plt.tight_layout()
         plt.suptitle('Estimation of photometric mask')
         plt.show()
     
@@ -519,7 +519,12 @@ def blend_expoures(
         
     
     for image in exposure_list:
-        image_gray = rgb2gray(image)
+        if len(image.shape) == 3:
+            image_gray = rgb2gray(image)
+        else:
+            # modern scikit-image rejects 2D input in rgb2gray; older
+            # versions passed grayscale images through (as float)
+            image_gray = img_as_float(image)
         exposure_list_gray.append(image_gray)  # grayscale
         mean_luminance_list.append(image_gray.mean())  # mean luminance
         if color_exposures is True:
@@ -927,7 +932,7 @@ def apply_local_contrast_enhancement(
         plt.title('Output')
         plt.axis('off')
         
-        plt.tight_layout(True)
+        plt.tight_layout()
         plt.suptitle('Local contrast enhancement [x' + str(degree) + ']')
         plt.show()
     
@@ -1092,7 +1097,7 @@ def apply_spatial_tonemapping(
         plt.title('Image tonemapped')
         plt.axis('off')
         
-        plt.tight_layout(True)
+        plt.tight_layout()
         plt.suptitle('Spatial tone mapping')
         plt.show()
 
@@ -1175,7 +1180,7 @@ def srgb_to_linear(image_srgb, verbose=False):
         plt.title('Image linear')
         plt.axis('off')
         
-        plt.tight_layout(True)
+        plt.tight_layout()
         plt.suptitle('sRGB -> linear space')
         plt.show()
         
@@ -1254,7 +1259,7 @@ def linear_to_srgb(image_linear, verbose=False):
         plt.title('Image sRGB')
         plt.axis('off')
         
-        plt.tight_layout(True)
+        plt.tight_layout()
         plt.suptitle('Linear space -> sRGB')
         plt.show()
     
@@ -1371,7 +1376,7 @@ def transfer_graytone_to_color(image_color, image_graytone, verbose=False):
         plt.title('Colortone linear')
         plt.axis('off')
         
-        plt.tight_layout(True)
+        plt.tight_layout()
         plt.suptitle('Transfering gray tones to color')
         plt.show()
     
@@ -1476,7 +1481,7 @@ def change_color_saturation(
         plt.title('New saturation [x' + str(sat_degree) + ']')
         plt.axis('off')
         
-        plt.tight_layout(True)
+        plt.tight_layout()
         plt.suptitle('Color saturation adjustment')
         plt.show()
     
@@ -1557,7 +1562,7 @@ def correct_colors(image, verbose):
         plt.title('Corrected colors')
         plt.axis('off')
         
-        plt.tight_layout(True)
+        plt.tight_layout()
         plt.suptitle('Gray world color correction')
         plt.show()
     
@@ -1654,7 +1659,7 @@ def adjust_brightness(image, degree=0, verbose=False):
         plt.title('Adjusted brightness image')
         plt.axis('off')
         
-        plt.tight_layout(True)
+        plt.tight_layout()
         plt.suptitle('Adjusting brightness')
         plt.show()
 

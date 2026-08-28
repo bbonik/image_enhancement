@@ -11,7 +11,7 @@ Example: image enhancement
 
 
 
-import imageio
+import imageio.v2 as imageio
 import matplotlib.pyplot as plt
 from image_enhancement import enhance_image
 

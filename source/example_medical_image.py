@@ -10,7 +10,7 @@ Example: enhancement of local details in medical image
 
 
 
-import imageio
+import imageio.v2 as imageio
 import matplotlib.pyplot as plt
 from skimage import img_as_float
 from skimage.color import rgb2gray
@@ -27,7 +27,8 @@ if __name__=="__main__":
     image = imageio.imread(filename)  # load image
     
     # grayscale and float
-    image = rgb2gray(image)
+    if image.ndim == 3:
+        image = rgb2gray(image)
     image = img_as_float(image)
     
     # get estimation of the local neighborhood
