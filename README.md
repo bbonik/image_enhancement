@@ -134,7 +134,7 @@ pytest -m regression -q -s      # compare against golden references
 ruff check src tests examples cuda
 ```
 
-The regression harness guards against unintended behavior changes: it compares the output of every public function against stored references at pixel level (exact match locally; `REGRESSION_TOLERANCE=1e-3` absorbs cross-platform float differences in CI). If you intentionally change algorithm behavior, re-capture the references:
+The regression harness guards against unintended behavior changes: it compares the output of every public function against stored references at pixel level (bit-exact locally; `REGRESSION_CROSS_PLATFORM=1` absorbs isolated last-ulp quantization flips on other platforms in CI). If you intentionally change algorithm behavior, re-capture the references:
 
 ```bash
 python tests/regression/regression_harness.py capture

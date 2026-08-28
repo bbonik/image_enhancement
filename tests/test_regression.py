@@ -6,12 +6,15 @@ pixel level. The default tolerance is 0 (exact match), which is the right
 setting when running in the same environment that captured the references.
 
 Across platforms or dependency versions, floating point results can differ
-legitimately (e.g. BLAS-backed rgb2gray), so CI may set a small tolerance:
+legitimately: libm/BLAS last-ulp differences flip isolated pixels across
+uint8 truncation boundaries (a whole 1/255 step) and LUT index boundaries.
+CI therefore sets REGRESSION_CROSS_PLATFORM=1, which enables a per-pixel
+tolerance plus a small allowance of outlier pixels and a hard cap:
 
-    REGRESSION_TOLERANCE=1e-3 pytest -m regression
+    REGRESSION_CROSS_PLATFORM=1 pytest -m regression
 
-A real algorithm change produces differences orders of magnitude larger
-than that, across a large fraction of pixels, so the check stays meaningful.
+A real algorithm change moves most pixels by amounts far beyond both the
+outlier allowance and the hard cap, so the check stays meaningful.
 """
 
 import os
@@ -30,9 +33,18 @@ def test_outputs_match_golden_references():
     if not os.path.exists(os.path.join(REF_DIR, "references.npz")):
         pytest.skip("no golden references captured (run regression_harness.py capture)")
 
-    tolerance = float(os.environ.get("REGRESSION_TOLERANCE", "0"))
-    exit_code = compare(tolerance)
+    if os.environ.get("REGRESSION_CROSS_PLATFORM") == "1":
+        # cross-platform mode: tolerate isolated last-ulp boundary flips
+        # (1 uint8 level = ~4e-3 normalized; LUT flips reach ~1e-2), on at
+        # most 0.5% of pixels, with no pixel differing by more than 0.05
+        exit_code = compare(
+            tolerance=5e-3, max_outlier_fraction=0.005, hard_cap=0.05)
+    else:
+        # same-environment mode: bit-exact
+        tolerance = float(os.environ.get("REGRESSION_TOLERANCE", "0"))
+        exit_code = compare(tolerance)
+
     assert exit_code == 0, (
-        f"outputs diverged from golden references (tolerance={tolerance}); "
+        "outputs diverged from golden references; "
         "see stdout for the per-output diff report"
     )

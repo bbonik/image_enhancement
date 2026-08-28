@@ -164,7 +164,20 @@ def capture():
         print(f"  {name:35s} shape={arr.shape} dtype={arr.dtype}")
 
 
-def compare(tolerance=0.0):
+def compare(tolerance=0.0, max_outlier_fraction=None, hard_cap=None):
+    """
+    Compare current outputs against the golden references.
+
+    tolerance: per-pixel absolute tolerance on the [0,1] scale (uint8
+        arrays are normalized by 255 first). 0 = bit-exact.
+    max_outlier_fraction: if set, allow up to this fraction of pixels per
+        output to exceed `tolerance`. Cross-platform floating point noise
+        (libm/BLAS last-ulp differences) flips isolated pixels across
+        quantization/LUT boundaries; a real algorithm change moves most
+        pixels. None = no outliers allowed.
+    hard_cap: if set, fail if ANY pixel differs by more than this
+        (on the [0,1] scale), regardless of the outlier allowance.
+    """
     path = os.path.join(REF_DIR, "references.npz")
     if not os.path.exists(path):
         print("ERROR: no references captured yet. Run 'capture' first.")
@@ -185,15 +198,24 @@ def compare(tolerance=0.0):
         if ref.dtype != cur.dtype:
             failures.append((name, f"dtype {ref.dtype} -> {cur.dtype}"))
             continue
-        diff = np.abs(ref.astype(np.float64) - cur.astype(np.float64))
+
+        # normalize to the [0,1] scale so tolerances are comparable
+        # across float and uint8 outputs (1 uint8 level == 1/255)
+        scale = 255.0 if ref.dtype == np.uint8 else 1.0
+        diff = np.abs(ref.astype(np.float64) - cur.astype(np.float64)) / scale
         max_diff = diff.max() if diff.size else 0.0
-        if max_diff > tolerance:
-            failures.append(
-                (name,
-                 f"max abs diff {max_diff:.3e} "
-                 f"({(diff > tolerance).sum()} / {diff.size} px differ)"))
+        outliers = int((diff > tolerance).sum())
+        allowed = (0 if max_outlier_fraction is None
+                   else int(max_outlier_fraction * diff.size))
+
+        report = (f"max diff {max_diff:.1e}, "
+                  f"{outliers}/{diff.size} px beyond tolerance")
+        if outliers > allowed:
+            failures.append((name, report + f" (allowed: {allowed})"))
+        elif hard_cap is not None and max_diff > hard_cap:
+            failures.append((name, report + f" (hard cap {hard_cap} exceeded)"))
         else:
-            print(f"  PASS  {name:35s} (max diff {max_diff:.1e})")
+            print(f"  PASS  {name:35s} ({report})")
 
     extra = set(outputs) - set(refs.files)
     for name in sorted(extra):
@@ -212,10 +234,17 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=["capture", "compare"])
     parser.add_argument("--tolerance", type=float, default=0.0,
-                        help="max allowed absolute diff (default 0 = exact)")
+                        help="per-pixel tolerance on the [0,1] scale "
+                             "(default 0 = bit-exact)")
+    parser.add_argument("--max-outlier-fraction", type=float, default=None,
+                        help="fraction of pixels allowed beyond tolerance "
+                             "(default: none)")
+    parser.add_argument("--hard-cap", type=float, default=None,
+                        help="absolute per-pixel diff that always fails "
+                             "(default: none)")
     args = parser.parse_args()
 
     if args.mode == "capture":
         capture()
         sys.exit(0)
-    sys.exit(compare(args.tolerance))
+    sys.exit(compare(args.tolerance, args.max_outlier_fraction, args.hard_cap))
