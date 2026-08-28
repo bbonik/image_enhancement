@@ -1,7 +1,7 @@
 # image_enhancement
 Library of NumPy-based and CUDA-based Image Processing functions for various types of Image Enhancement, including:
 - Spatial Tone Mapping
-- Local Contrast Enhencement
+- Local Contrast Enhancement
 - Color Correction (White Balance)
 - Color Saturation Adjustment
 - Exposure Fusion
@@ -27,7 +27,7 @@ Library of NumPy-based and CUDA-based Image Processing functions for various typ
 - **srgb_to_linear()**: Transforms image to the linear color space. 
 - **linear_to_srgb()**: Transforms image to the gamma-corrected color space. 
 - **enhance_image()**: Applies multiple stages of enhancement to an image. 
-- **blend_expoures()**: Fuses a collection of image exposures to a single well exposed image. 
+- **blend_exposures()**: Fuses a collection of image exposures to a single well exposed image. 
 
 # Contents:
 ```tree
@@ -45,7 +45,7 @@ Library of NumPy-based and CUDA-based Image Processing functions for various typ
 └── images                                     [Directory: Sample test images]
 ```
 
-# Dependences
+# Dependencies
 - numpy
 - imageio
 - skimage (can be easily bypassed if needed)
@@ -62,7 +62,7 @@ The Python code loads a compiled cuda binary (`.cubin`) and runs the CUDA kernel
 
     nvcc --cubin -arch=[arch] -use_fast_math -O3 source/cuda/image_enhancement.cu -o source/image_enhancement.cubin
 
-With `image_enhancement.cubin` in `source`, you can run `source/image_enhancement_cuda.py` to generate an enchanced version of `alhambra1.jpg`.
+With `image_enhancement.cubin` in `source`, you can run `source/image_enhancement_cuda.py` to generate an enhanced version of `alhambra1.jpg`.
 
 # Citations
 If you use this code in your research please cite the following papers:   

@@ -109,7 +109,7 @@ def get_membership_luts(
     
     '''
     ---------------------------------------------------------------------------
-               Creates 3 paramteric traspezoid membership functions
+               Creates 3 parametric trapezoid membership functions
     ---------------------------------------------------------------------------
     
     The trapezoid functions are defined as piece-wise functions between the
@@ -138,11 +138,11 @@ def get_membership_luts(
     OUTPUT
     ------
     lut_lower: float numpy array of size equal to resolution, values in [0,1]
-        The lower trepezoid membership function. 
+        The lower trapezoid membership function. 
     lut_mid: float numpy array of size equal to resolution, values in [0,1]
-        The middle trepezoid membership function. 
+        The middle trapezoid membership function. 
     lut_upper float numpy array of size equal to resolution, values in [0,1]
-        The upper trepezoid membership function. 
+        The upper trapezoid membership function. 
         
     '''
 
@@ -213,7 +213,7 @@ def get_sigmoid_lut(
     
     '''
     ---------------------------------------------------------------------------
-           Creates a paramteric sigmoid function and stores it in a LUT
+           Creates a parametric sigmoid function and stores it in a LUT
     ---------------------------------------------------------------------------
     
     The sigmoid function is defined as a piece-wise function of 2 inverse 
@@ -230,7 +230,7 @@ def get_sigmoid_lut(
         The size of the LUT (how many inputs).
     threshold: float in the range [0,1]
         The position of the inflection point of the sigmoid function (0.5 in
-        the mid_tonedle of the range).
+        the middle of the range).
     non_linearirty: float in range (0, inf)
         Controls the non-linearity of the curve before and after the inflection
         point. It should not be 0. The smaller it is (asymptotically to 0) the
@@ -445,7 +445,7 @@ def get_photometric_mask(
 
 
 
-def blend_expoures(
+def blend_exposures(
         exposure_list, 
         threshold_dark=0.35, 
         threshold_bright=0.65, 
@@ -571,13 +571,13 @@ def blend_expoures(
     illumination_coarse = get_photometric_mask(
         exposure_array_gray.copy(), 
         smoothing=SCALE_COARSE, 
-        grayscale_out=False,  # estimaste each channel separately
+        grayscale_out=False,  # estimate each channel separately
         verbose=False)
     
     illumination_fine = get_photometric_mask(
         exposure_array_gray.copy(), 
         smoothing=SCALE_FINE, 
-        grayscale_out=False,  # estimaste each channel separately
+        grayscale_out=False,  # estimate each channel separately
         verbose=False)
     
     
@@ -683,8 +683,8 @@ def blend_expoures(
     # generate membership function LUTs
     weights_lower, weights_mid, weights_upper = get_membership_luts(
         resolution=LUT_RESOLUTION, 
-        lower_threshold=threshold_dark,  # defines lower cutofd
-        upper_threshold=threshold_bright,  # defines upper cutofd
+        lower_threshold=threshold_dark,  # defines lower cutoff
+        upper_threshold=threshold_bright,  # defines upper cutoff
         verbose=verbose
         )
     
@@ -843,7 +843,9 @@ def blend_expoures(
 
     return exposure_out
     
-    
+
+# backwards-compatible alias for the original (misspelled) function name
+blend_expoures = blend_exposures
     
     
 
@@ -959,7 +961,7 @@ def apply_spatial_tonemapping(
     For surround, the photometric mask is used. Alternatively, other filters
     could be used, like gaussian, bilateral filter, edge-avoiding wavelets etc.
     Dark pixels are brightened, bright pixels are darkened, and pixels in the 
-    mid_tonedle of the tone range are minimally affected. More information 
+    middle of the tone range are minimally affected. More information 
     about the technique can be found in the following papers:
     
     Related publications: 
@@ -986,9 +988,9 @@ def apply_spatial_tonemapping(
         pixel values, whereas for higher values the enhancement will extend to 
         a greater range of pixel values. 
     areas_dark: float [0,1]
-        Degree of enhencement in the dark image areas (0 = no enhencement)
+        Degree of enhancement in the dark image areas (0 = no enhancement)
     areas_bright: float [0,1]
-        Degree of enhencement in the bright image areas (0 = no enhencement)
+        Degree of enhancement in the bright image areas (0 = no enhancement)
     preserve_tones: boolean
         Whether or not to preserve well-exposed tones around the middle of the 
         range. 
@@ -1493,7 +1495,7 @@ def change_color_saturation(
 
 
 
-def correct_colors(image, verbose):
+def correct_colors(image, verbose=False):
     '''
     ---------------------------------------------------------------------------
                     Correct image colors (remove color casts)
@@ -1540,9 +1542,11 @@ def correct_colors(image, verbose):
     base_b = image_out[:,:,2].mean() / image_out[:,:,2].max()
     
     # the power to which each channel will be raised
-    power_r = math.log(image_mean, base_r)
-    power_g = math.log(image_mean, base_g)
-    power_b = math.log(image_mean, base_b)
+    # (a base outside (0,1) means a degenerate/constant channel, for which 
+    # the logarithm is undefined; leave such channels unchanged with power 1)
+    power_r = math.log(image_mean, base_r) if 0 < base_r < 1 else 1.0
+    power_g = math.log(image_mean, base_g) if 0 < base_g < 1 else 1.0
+    power_b = math.log(image_mean, base_b) if 0 < base_b < 1 else 1.0
     
     # separately applying different color correction powers to each channel
     image_out[:,:,0] = (image_out[:,:,0] / image_out[:,:,0].max()) ** power_r
@@ -1733,6 +1737,10 @@ def enhance_image(image, parameters, verbose=False):
     #TODO: add an automatic parameter estimation stage (machine learning)
     
     
+    # work on a copy, so the caller's dictionary is not mutated by the
+    # sanity checks and default values below
+    parameters = dict(parameters)
+
     # sanity check for type, range and defaults
     
     if 'local_contrast' in parameters:

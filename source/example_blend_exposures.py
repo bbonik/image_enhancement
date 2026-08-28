@@ -12,7 +12,7 @@ Example: image enhancement
 
 import glob
 import imageio.v2 as imageio
-from image_enhancement import blend_expoures
+from image_enhancement import blend_exposures
 
 
 
@@ -30,7 +30,7 @@ if __name__=="__main__":
         image_list.append(image)
     
     # blend exposures
-    exposure_blend = blend_expoures(
+    exposure_blend = blend_exposures(
         image_list,             
         threshold_dark=0.35,                              
         threshold_bright=0.65, 

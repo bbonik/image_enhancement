@@ -131,14 +131,20 @@ def compute_all_outputs():
     out["enhance_image_defaults"] = ie.enhance_image(lisbon.copy(), {})
 
     # --- exposure fusion ------------------------------------------------------
-    out["blend_exposures_color"] = ie.blend_expoures(
+    # blend_expoures is the original (misspelled) name, kept as an alias
+    blend = getattr(ie, "blend_exposures", None) or ie.blend_expoures
+    if hasattr(ie, "blend_exposures"):
+        assert ie.blend_expoures is ie.blend_exposures, \
+            "blend_expoures alias must point to blend_exposures"
+
+    out["blend_exposures_color"] = blend(
         [e.copy() for e in exposures],
         threshold_dark=0.35, threshold_bright=0.65)
     # NOTE: grayscale exposure blending is broken in the ORIGINAL code under
     # modern skimage (unconditional rgb2gray() rejects 2D input; older skimage
     # passed 2D through unchanged). Captured only once the fix restores it.
     try:
-        out["blend_exposures_gray"] = ie.blend_expoures(
+        out["blend_exposures_gray"] = blend(
             [rgb2gray(e) for e in exposures],
             threshold_dark=0.35, threshold_bright=0.65)
     except ValueError as exc:
