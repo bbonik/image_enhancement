@@ -572,14 +572,16 @@ def blend_exposures(
     
     #--- generate illumination estimation in 2 spatial scales
     
+    # (get_photometric_mask never mutates its input, it copies internally;
+    # no defensive copies needed)
     illumination_coarse = get_photometric_mask(
-        exposure_array_gray.copy(), 
+        exposure_array_gray, 
         smoothing=SCALE_COARSE, 
         grayscale_out=False,  # estimate each channel separately
         verbose=False)
     
     illumination_fine = get_photometric_mask(
-        exposure_array_gray.copy(), 
+        exposure_array_gray, 
         smoothing=SCALE_FINE, 
         grayscale_out=False,  # estimate each channel separately
         verbose=False)
@@ -1119,6 +1121,35 @@ def apply_spatial_tonemapping(
 
 
 
+_SRGB_TO_LINEAR_LUT = None
+
+
+def _get_srgb_to_linear_lut():
+    '''
+    Precompute srgb_to_linear for all 256 uint8 levels, using the exact
+    same piecewise formula as the general (float) path, so LUT indexing
+    yields bit-identical results for uint8 inputs. Built once, cached.
+    '''
+    global _SRGB_TO_LINEAR_LUT
+    if _SRGB_TO_LINEAR_LUT is None:
+        levels = img_as_float(np.arange(256, dtype=np.uint8))  # [0,1]
+
+        # lower part of the piecewise formula
+        lut_lower = levels.copy()
+        lut_lower[lut_lower > 0.04045] = 0
+        lut_lower = lut_lower / 12.92
+
+        # upper part of the piecewise formula
+        lut_upper = levels.copy()
+        lut_upper = lut_upper + 0.055
+        lut_upper[lut_upper <= (0.04045+0.055)] = 0
+        lut_upper = lut_upper / 1.055
+        lut_upper = lut_upper ** 2.4
+
+        _SRGB_TO_LINEAR_LUT = lut_lower + lut_upper
+    return _SRGB_TO_LINEAR_LUT
+
+
 def srgb_to_linear(image_srgb: np.ndarray, verbose: bool = False) -> np.ndarray:
     
     '''
@@ -1161,28 +1192,36 @@ def srgb_to_linear(image_srgb: np.ndarray, verbose: bool = False) -> np.ndarray:
     if dimensions == 1:
         image_srgb = np.expand_dims(image_srgb, axis=2)  # make a 3rd dimension
     
-    image_srgb = img_as_float(image_srgb)  # [0,1]
+    if image_srgb.dtype == np.uint8:
+        # fast path: a uint8 image has only 256 possible values, so the
+        # piecewise formula is precomputed once for all of them and applied
+        # by indexing. Elementwise float operations are value-wise
+        # deterministic, so this is bit-exact vs the general path below
+        # (which would evaluate the very same formula per pixel).
+        image_linear = _get_srgb_to_linear_lut()[image_srgb]
+    else:
+        image_srgb = img_as_float(image_srgb)  # [0,1]
+        
+        # lower part of the piecewise formula
+        image_lower = image_srgb.copy()
+        image_lower[image_lower > 0.04045] = 0
+        image_lower = image_lower / 12.92
     
-    # lower part of the piecewise formula
-    image_lower = image_srgb.copy()
-    image_lower[image_lower > 0.04045] = 0
-    image_lower = image_lower / 12.92
-
-    # upper part of the piecewise formula
-    image_upper = image_srgb.copy()
-    image_upper = image_upper + 0.055
-    image_upper[image_upper <= (0.04045+0.055)] = 0
-    image_upper = image_upper / 1.055
-    image_upper = image_upper ** 2.4
-    
-    image_linear = image_lower + image_upper  # combine into the final result
+        # upper part of the piecewise formula
+        image_upper = image_srgb.copy()
+        image_upper = image_upper + 0.055
+        image_upper[image_upper <= (0.04045+0.055)] = 0
+        image_upper = image_upper / 1.055
+        image_upper = image_upper ** 2.4
+        
+        image_linear = image_lower + image_upper  # combine the final result
     
     if verbose is True:
         
         plt = _get_pyplot()
         plt.figure()
         plt.subplot(1,2,1)
-        plt.imshow(image_srgb, vmin=0, vmax=1)
+        plt.imshow(img_as_float(image_srgb), vmin=0, vmax=1)
         plt.title('Image sRGB')
         plt.axis('off')
         
@@ -1328,9 +1367,11 @@ def transfer_graytone_to_color(
     EPSILON = 1 / 256
     
     # bring both color and graytone to linear space
-    image_color_linear = srgb_to_linear(image_color.copy(), verbose=False)
-    image_graytone_linear = srgb_to_linear(image_graytone.copy(),verbose=False)
-    image_gray_linear = rgb2gray(image_color_linear.copy())
+    # (no defensive copies needed: srgb_to_linear and rgb2gray never
+    # mutate their inputs, they allocate new arrays)
+    image_color_linear = srgb_to_linear(image_color, verbose=False)
+    image_graytone_linear = srgb_to_linear(image_graytone, verbose=False)
+    image_gray_linear = rgb2gray(image_color_linear)
     image_gray_linear[image_gray_linear==0] = EPSILON  # for the division later
     
     # tone ratio of linear images: improved/original
@@ -1824,8 +1865,9 @@ def enhance_image(
         )
 
     # increase the local contrast of the grayscale image
+    # (rgb2gray never mutates its input; no defensive copy needed)
     image_contrast = apply_local_contrast_enhancement(
-            image=rgb2gray(image.copy()), 
+            image=rgb2gray(image), 
             image_ph_mask=image_ph_mask, 
             degree=parameters['local_contrast'], 
             verbose=verbose
