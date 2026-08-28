@@ -3,6 +3,25 @@
 All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.2.0] - 2026-08-28
+
+### Fixed
+- `linear_to_srgb` deep-shadow bug: the vectorized implementation leaked
+  the upper branch's -0.055 offset into lower-branch (dark) pixels, so
+  sRGB levels ≤ ~10/255 collapsed to 0 (shadows crushed to pure black).
+  The formula now matches the EasyRGB reference math exactly (verified
+  against a per-pixel scalar implementation over the full input range);
+  the round trip is within one uint8 level for all 256 levels. The same
+  fix was applied to the CUDA kernel (untested locally, no GPU).
+
+### Changed
+- Golden regression references deliberately re-captured for the 5
+  outputs that depend on `linear_to_srgb`. Audited impact: changes are
+  confined to deep shadows (max delta 0.05, typically < 1% of pixels;
+  the color-correction variant additionally shifts all pixels by a
+  median of 8e-6 through image statistics). The other 20 references are
+  bit-identical.
+
 ## [1.1.0] - 2026-08-28
 
 Performance release. **All outputs remain bit-for-bit identical** to the

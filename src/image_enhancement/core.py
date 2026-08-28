@@ -1280,19 +1280,15 @@ def linear_to_srgb(image_linear: np.ndarray, verbose: bool = False) -> np.ndarra
     
     image_linear = img_as_float(image_linear)  # [0,1] 
     
-    # lower part of the piecewise formula
-    image_lower = image_linear.copy()
-    image_lower[image_lower > 0.0031308] = 0
-    image_lower = image_lower * 12.92
-
-    # upper part of the piecewise formula
-    image_upper = image_linear.copy()
-    image_upper[image_upper <= 0.0031308] = 0
-    image_upper = image_upper ** (1/2.4)
-    image_upper = image_upper * 1.055
-    image_upper = image_upper - 0.055
-    
-    image_srgb = image_lower + image_upper
+    # piecewise formula, vectorized with a boolean mask. This matches the
+    # EasyRGB reference math exactly: the -0.055 offset applies only to
+    # the upper branch. (An earlier version subtracted 0.055 from the
+    # whole array after zeroing lower-branch pixels, which crushed deep
+    # shadows -- sRGB levels <= ~10/255 collapsed to 0.)
+    is_upper = image_linear > 0.0031308
+    image_srgb = image_linear * 12.92                      # lower branch
+    image_srgb[is_upper] = (1.055 * 
+                            (image_linear[is_upper] ** (1/2.4)) - 0.055)
     image_srgb = np.clip(a=image_srgb, a_min=0, a_max=1, out=image_srgb)
     
     

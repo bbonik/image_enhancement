@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "image-enhancement"
-version = "1.1.0"
+version = "1.2.0"
 description = "NumPy-based image enhancement: spatial tone mapping, local contrast enhancement, color correction (white balance), saturation adjustment and exposure fusion"
 readme = "README.md"
 license = { file = "LICENSE" }

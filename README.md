@@ -108,7 +108,7 @@ All functions live in [`src/image_enhancement/core.py`](src/image_enhancement/co
 
 Input/output ranges and dtypes intentionally differ between functions and are part of the API (see table above). In short: grayscale operators work in float [0,1]; `linear_to_srgb` and `transfer_graytone_to_color` return display-ready uint8 [0,255]; everything else returns float [0,1].
 
-One known, intentionally preserved behavior: `linear_to_srgb` collapses deep shadows (sRGB levels ≤ ~10/255) to 0 on round-trip. This is locked in by the golden regression references and characterized in the test suite; the CUDA port shares the same formula.
+The sRGB transforms follow the [EasyRGB reference math](https://www.easyrgb.com/en/math.php) exactly; the round trip `linear_to_srgb(srgb_to_linear(x))` is within one uint8 level for all 256 input levels (verified by the test suite).
 
 ## Project structure
 

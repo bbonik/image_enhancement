@@ -26,25 +26,37 @@ class TestSrgbLinearTransforms:
         assert srgb.dtype == np.uint8
         assert srgb.shape == color_uint8.shape
 
-    def test_round_trip_within_one_level_above_deep_shadows(self, color_uint8):
-        # linear_to_srgb truncates to uint8, so allow off-by-one
+    def test_round_trip_within_one_level_full_range(self, color_uint8):
+        # linear_to_srgb truncates to uint8, so allow off-by-one; this
+        # must hold across the whole range, including deep shadows
+        # (historical bug: sRGB levels <= ~10/255 collapsed to 0)
         round_trip = linear_to_srgb(srgb_to_linear(color_uint8))
         diff = np.abs(round_trip.astype(int) - color_uint8.astype(int))
-        above_shadows = color_uint8 > 10
-        assert diff[above_shadows].max() <= 1
+        assert diff.max() <= 1
 
-    def test_known_behavior_deep_shadows_collapse_to_zero(self):
-        # KNOWN QUIRK (characterization test, not an endorsement):
-        # in linear_to_srgb, the upper piecewise branch subtracts 0.055
-        # AFTER zeroing the lower-branch pixels, so dark pixels become
-        # 12.92*v - 0.055 instead of 12.92*v. After clipping, every sRGB
-        # level <= ~10/255 collapses to 0. The golden regression
-        # references intentionally lock in this behavior; the CUDA port
-        # (cuda/image_enhancement.cu) has the same quirk. If this is ever
-        # fixed, references must be deliberately re-captured.
-        shadows = np.arange(11, dtype=np.uint8).reshape(1, 11, 1).repeat(3, axis=2)
-        round_trip = linear_to_srgb(srgb_to_linear(shadows))
-        assert np.all(round_trip == 0)
+    def test_all_256_levels_round_trip(self):
+        # every uint8 level must survive the round trip within one level
+        levels = np.arange(256, dtype=np.uint8).reshape(1, 256, 1).repeat(3, axis=2)
+        round_trip = linear_to_srgb(srgb_to_linear(levels))
+        diff = np.abs(round_trip.astype(int) - levels.astype(int))
+        assert diff.max() <= 1
+
+    def test_linear_to_srgb_matches_easyrgb_reference(self):
+        # ground truth: the EasyRGB piecewise formula, evaluated per pixel
+        # https://www.easyrgb.com/en/math.php
+        def easyrgb(v):
+            if v > 0.0031308:
+                return 1.055 * (v ** (1 / 2.4)) - 0.055
+            return 12.92 * v
+
+        linear = np.linspace(0, 1, 4097)
+        linear = np.append(linear, [0.0031308, np.nextafter(0.0031308, 1)])
+        expected = np.clip([easyrgb(v) for v in linear], 0, 1)
+        expected = (np.asarray(expected) * 255).astype(np.uint8)
+
+        image = np.tile(linear.reshape(1, -1, 1), (1, 1, 3))
+        result = linear_to_srgb(image)
+        assert np.array_equal(result[0, :, 0], expected)
 
     def test_uint8_and_float_inputs_equivalent(self, color_uint8):
         as_float = color_uint8.astype(np.float64) / 255.0

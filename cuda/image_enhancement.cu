@@ -131,10 +131,17 @@ __device__ float srgb_to_linear(float value){
 }
 
 __device__ float linear_to_srgb(float value){
-    float lower = value * (value <= 0.0031308f) * 12.92f;
-    float upper = powf(value * (value > 0.0031308f), 1.0f / 2.4f) * 1.055f - 0.055f;
+    // Piecewise sRGB encoding (EasyRGB reference math). The -0.055 offset
+    // applies only to the upper branch; an earlier branchless version
+    // leaked it into the lower branch, crushing deep shadows to black.
+    float result;
+    if (value > 0.0031308f){
+        result = 1.055f * powf(value, 1.0f / 2.4f) - 0.055f;
+    } else {
+        result = 12.92f * value;
+    }
 
-    return max(0.0f, min(1.0f, lower + upper));
+    return max(0.0f, min(1.0f, result));
 }
 
 __device__ void graytone_to_color(float rgb[3], float gray){
