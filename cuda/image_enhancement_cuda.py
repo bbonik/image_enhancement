@@ -1,7 +1,7 @@
 import os
 import numpy
 import pycuda.driver as cuda
-import pycuda.autoinit
+import pycuda.autoinit  # noqa: F401  (side-effect import: initializes the CUDA context)
 
 from math import ceil
 from PIL import Image

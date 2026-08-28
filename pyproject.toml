@@ -29,9 +29,27 @@ plot = ["matplotlib>=3.5"]
 # CUDA pipeline (cuda/image_enhancement_cuda.py); requires an NVIDIA GPU
 # and a compiled .cubin, see README
 cuda = ["pycuda", "Pillow"]
+# development: tests and lint
+dev = ["pytest>=7", "ruff>=0.4"]
 
 [project.urls]
 Homepage = "https://github.com/bbonik/image_enhancement"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "regression: full-pipeline comparison against golden references (slow)",
+]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests", "examples"]
+
+[tool.ruff.lint]
+# Correctness-only rules: the legacy code base has an established style
+# (spacing, long docstring lines) that we deliberately do not churn.
+# E9 = syntax/runtime errors, F = pyflakes (undefined names, unused imports).
+select = ["E9", "F"]
