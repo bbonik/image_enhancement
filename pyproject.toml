@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "image-enhancement"
+version = "1.0.0"
+description = "NumPy-based image enhancement: spatial tone mapping, local contrast enhancement, color correction (white balance), saturation adjustment and exposure fusion"
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Vasileios Vonikakis", email = "bbonik@gmail.com" },
+]
+requires-python = ">=3.9"
+dependencies = [
+    "numpy>=1.22",
+    "scikit-image>=0.19",
+    "imageio>=2.9",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Scientific/Engineering :: Image Processing",
+]
+
+[project.optional-dependencies]
+# verbose=True visualizations
+plot = ["matplotlib>=3.5"]
+# CUDA pipeline (cuda/image_enhancement_cuda.py); requires an NVIDIA GPU
+# and a compiled .cubin, see README
+cuda = ["pycuda", "Pillow"]
+
+[project.urls]
+Homepage = "https://github.com/bbonik/image_enhancement"
+
+[tool.setuptools.packages.find]
+where = ["src"]

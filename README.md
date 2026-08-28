@@ -16,7 +16,7 @@ Library of NumPy-based and CUDA-based Image Processing functions for various typ
 ![Example7](images/Figure_7.png "Example7")
 
 # Functions:
-![/source/image_enhancement.py](/source/image_enhancement.py "/source/image_enhancement.py")  contains:
+[/src/image_enhancement/core.py](/src/image_enhancement/core.py "/src/image_enhancement/core.py")  contains:
 - **get_photometric_mask()**: Estimates local brightness distribution (edge-aware blurring).
 - **apply_local_contrast_enhancement()**: Adjusts strength of local details.
 - **apply_spatial_tonemapping()**: Adjusts brightness levels in dark and bright regions. 
@@ -31,26 +31,52 @@ Library of NumPy-based and CUDA-based Image Processing functions for various typ
 
 # Contents:
 ```tree
-├── source                                     [Directory: Source code]
-│   ├── image_enhancement.py                   [Main script with all the functions]
-│   ├── image_enhancement_cuda.py              [Script with ~most~ of the functions in CUDA]
+├── src
+│   └── image_enhancement                      [The installable Python package]
+│       ├── __init__.py                        [Public API re-exports]
+│       └── core.py                            [Main module with all the functions]
+├── examples                                   [Directory: Example scripts]
+│   ├── example_adjust_image_brightness.py     [Example of adjusting global brightness]
 │   ├── example_color_correction.py            [Example of applying color correction]
 │   ├── example_enhance_image.py               [Example of combined image enhancement]
 │   ├── example_local_contrast_enhancement.py  [Example of applying increasing local details]
 │   ├── example_blend_exposures.py             [Example of blending multiple image exposures]
-│   ├── example_medical_image.py               [Example of processing medical images]
-│   ├── cuda
-│   │  ├── image_enhancement.cu.h              [Header file for CUDA implementation]
-│   │  └── image_enhancement.cu                [Implementation of image enhancement in CUDA]
+│   └── example_medical_image.py               [Example of processing medical images]
+├── cuda                                       [Directory: CUDA implementation]
+│   ├── image_enhancement.cu.h                 [Header file for CUDA implementation]
+│   ├── image_enhancement.cu                   [Implementation of image enhancement in CUDA]
+│   └── image_enhancement_cuda.py              [Script with ~most~ of the functions in CUDA]
+├── tests
+│   └── regression                             [Pixel-exact regression harness + golden references]
 └── images                                     [Directory: Sample test images]
 ```
 
+# Installation
+From the repository root:
+
+    pip install .
+
+Or for development (editable install):
+
+    pip install -e .
+
+Optional extras:
+
+    pip install .[plot]   # matplotlib, for verbose=True visualizations
+    pip install .[cuda]   # pycuda + Pillow, for the CUDA pipeline
+
+After installation the examples can be run from the `examples` directory:
+
+    cd examples
+    python example_enhance_image.py
+
 # Dependencies
 - numpy
+- scikit-image
 - imageio
-- skimage (can be easily bypassed if needed)
-- Pillow (optional: only needed for running `image_enhancement_cuda.py`)
-- pycuda (optional: only needed for running `image_enhancement_cuda.py`)
+- matplotlib (optional: only needed for `verbose=True` visualizations)
+- Pillow (optional: only needed for running `cuda/image_enhancement_cuda.py`)
+- pycuda (optional: only needed for running `cuda/image_enhancement_cuda.py`)
 
 # Dataset
 If you want to try this code in real-life challenging travel photos, please try the following dataset:
@@ -60,9 +86,9 @@ If you want to try this code in real-life challenging travel photos, please try 
 # Building CUDA code
 The Python code loads a compiled cuda binary (`.cubin`) and runs the CUDA kernels using numpy arrays. Replace `[arch]` in the code below to compile the CUDA code (e.g. `-arch=sm_72`).
 
-    nvcc --cubin -arch=[arch] -use_fast_math -O3 source/cuda/image_enhancement.cu -o source/image_enhancement.cubin
+    nvcc --cubin -arch=[arch] -use_fast_math -O3 cuda/image_enhancement.cu -o cuda/image_enhancement.cubin
 
-With `image_enhancement.cubin` in `source`, you can run `source/image_enhancement_cuda.py` to generate an enhanced version of `alhambra1.jpg`.
+With `image_enhancement.cubin` in `cuda`, you can run `cuda/image_enhancement_cuda.py` to generate an enhanced version of `alhambra1.jpg`.
 
 # Citations
 If you use this code in your research please cite the following papers:   

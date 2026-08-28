@@ -27,8 +27,9 @@ REPO_ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 REF_DIR = os.path.join(HERE, "references")
 IMAGES_DIR = os.path.join(REPO_ROOT, "images")
 
-# Prefer the installed/src package if present; fall back to legacy source/.
-sys.path.insert(0, os.path.join(REPO_ROOT, "source"))
+# Allow running without installation: fall back to the src/ layout
+# (an installed/editable package takes priority if present).
+sys.path.append(os.path.join(REPO_ROOT, "src"))
 
 import imageio.v2 as imageio  # noqa: E402
 
