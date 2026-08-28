@@ -9,18 +9,30 @@ Image enhancement functions
 """
 
 import math
-import imageio.v2 as imageio
 import numpy as np
-import matplotlib.pyplot as plt
 from skimage.color import rgb2gray
 from skimage import img_as_float
 from skimage.exposure import rescale_intensity, adjust_gamma
 
 
-plt.close('all')
-
 #TODO: better memory management!!!! Too many copying of images. 
 #something like "inplace"?
+
+
+def _get_pyplot():
+    '''
+    Lazy import of matplotlib.pyplot. Only the verbose=True visualization
+    paths need matplotlib; the image processing itself does not. This keeps
+    matplotlib an optional dependency and allows headless use of the library.
+    '''
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError as exc:
+        raise ImportError(
+            "matplotlib is required for verbose=True visualizations. "
+            "Install it with 'pip install matplotlib'."
+            ) from exc
+    return plt
 
 
 def map_value(
@@ -177,6 +189,7 @@ def get_membership_luts(
         
         
     if verbose is True:
+        plt = _get_pyplot()
         plt.figure()
         
         plt.subplot(1,3,1)
@@ -268,6 +281,7 @@ def get_sigmoid_lut(
             lut[i] = (alpha * i) / (alpha - i_comp) * (1 / (2 * thr))
     
     if verbose is True:
+        plt = _get_pyplot()
         plt.figure()
         plt.plot(lut)
         plt.title('Sigmoid LUT | ' + 
@@ -419,6 +433,7 @@ def get_photometric_mask(
 
     if verbose is True:
         
+        plt = _get_pyplot()
         plt.figure()
         plt.subplot(1,2,1)
         plt.imshow(image)
@@ -769,6 +784,7 @@ def blend_exposures(
         
         # display intermediate stages of the method
         
+        plt = _get_pyplot()
         plt.figure()
         
         for i in range(total_exposures):
@@ -819,6 +835,7 @@ def blend_exposures(
         plt.show()
 
         # display final color result
+        plt = _get_pyplot()
         plt.figure()
         grid = plt.GridSpec(total_exposures, total_exposures)
         if color_exposures is False: 
@@ -918,6 +935,7 @@ def apply_local_contrast_enhancement(
     
     if verbose is True:
 
+        plt = _get_pyplot()
         plt.figure()
         plt.subplot(1,3,1)
         plt.imshow(image, cmap='gray', vmin=0, vmax=1)
@@ -1077,6 +1095,7 @@ def apply_spatial_tonemapping(
     
     if verbose is True:
         
+        plt = _get_pyplot()
         plt.figure()
         
         plt.subplot(2,2,1)
@@ -1171,6 +1190,7 @@ def srgb_to_linear(image_srgb, verbose=False):
     
     if verbose is True:
         
+        plt = _get_pyplot()
         plt.figure()
         plt.subplot(1,2,1)
         plt.imshow(image_srgb, vmin=0, vmax=1)
@@ -1250,6 +1270,7 @@ def linear_to_srgb(image_linear, verbose=False):
     
     if verbose is True:
         
+        plt = _get_pyplot()
         plt.figure()
         plt.subplot(1,2,1)
         plt.imshow(image_linear, vmin=0, vmax=1)
@@ -1342,6 +1363,7 @@ def transfer_graytone_to_color(image_color, image_graytone, verbose=False):
     # display results
     if verbose is True:
         
+        plt = _get_pyplot()
         plt.figure()
         plt.subplot(2,4,1)
         plt.imshow(image_color, vmin=0, vmax=255)
@@ -1472,6 +1494,7 @@ def change_color_saturation(
     
     if verbose is True:
         
+        plt = _get_pyplot()
         plt.figure()
         plt.subplot(1,2,1)
         plt.imshow(image_color, vmin=0, vmax=1)
@@ -1555,6 +1578,7 @@ def correct_colors(image, verbose=False):
     
     if verbose is True:
         
+        plt = _get_pyplot()
         plt.figure()
         plt.subplot(1,2,1)
         plt.imshow(image)
@@ -1651,6 +1675,7 @@ def adjust_brightness(image, degree=0, verbose=False):
     
     if verbose is True:
         
+        plt = _get_pyplot()
         plt.figure()
         
         plt.subplot(1,2,1)
@@ -1853,6 +1878,7 @@ def enhance_image(image, parameters, verbose=False):
     # display results
     if verbose is True:
     
+        plt = _get_pyplot()
         plt.figure()
         plt.subplot(2,3,1)
         plt.imshow(image, vmin=0, vmax=255)
@@ -1911,6 +1937,8 @@ def enhance_image(image, parameters, verbose=False):
 
 if __name__=="__main__":
     
+    import imageio.v2 as imageio
+    
     filename = "../images/lisbon.jpg"
     image = imageio.imread(filename)  # load image
     
@@ -1928,6 +1956,7 @@ if __name__=="__main__":
     image_enhanced = enhance_image(image, parameters, verbose=False)
     
     # display results
+    plt = _get_pyplot()
     plt.figure()
     plt.subplot(1,2,1)
     plt.imshow(image, vmin=0, vmax=255)
