@@ -3,6 +3,31 @@
 All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.1.0] - 2026-08-28
+
+Performance release. **All outputs remain bit-for-bit identical** to the
+reference implementation, enforced by the golden-reference regression
+suite on both the fast and fallback paths.
+
+### Added
+- Optional numba-compiled kernel for the photometric mask's recursive
+  envelope (`pip install ".[fast]"`): 250 ms → 40 ms on an 8 MP image
+  (6.3x). Mirrors the NumPy arithmetic operation-for-operation (no
+  fastmath), so results are bit-exact. `IMAGE_ENHANCEMENT_NO_NUMBA=1`
+  forces the NumPy path.
+- Bit-exact uint8 LUT fast path for `srgb_to_linear` (302 ms → 29 ms,
+  10x); float inputs keep the original general path.
+- CI regression job variant with numba installed, verifying the compiled
+  path against the golden references.
+
+### Changed
+- End-to-end `enhance_image` on a 2448x3264 photo: 1.65 s → 0.69 s (2.4x)
+- Removed six provably redundant defensive array copies at call sites
+  whose callees never mutate their inputs
+- The recursive envelope now lives in `src/image_enhancement/_envelope.py`
+  (NumPy implementation extracted verbatim)
+- README: performance section; CUDA port explicitly documented as legacy
+
 ## [1.0.0] - 2026-08-28
 
 Modernization release. **All algorithm outputs are bit-for-bit identical to

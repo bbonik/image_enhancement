@@ -30,7 +30,7 @@ from image_enhancement.core import (
     enhance_image,
 )
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 __all__ = [
     "map_value",

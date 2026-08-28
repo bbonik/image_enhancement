@@ -24,6 +24,7 @@ pip install -e .         # editable / development install
 Optional extras:
 
 ```bash
+pip install ".[fast]"    # numba: ~2.4x faster pipeline, bit-identical results
 pip install ".[plot]"    # matplotlib, for verbose=True visualizations
 pip install ".[cuda]"    # pycuda + Pillow, for the CUDA pipeline
 pip install ".[dev]"     # pytest + ruff, for development
@@ -124,6 +125,23 @@ One known, intentionally preserved behavior: `linear_to_srgb` collapses deep sha
 └── .github/workflows           CI: lint + unit tests + regression
 ```
 
+## Performance
+
+Two optional, **bit-exact** fast paths are built in (results are guaranteed identical to the reference implementation, enforced by the golden-reference regression suite):
+
+- **uint8 LUT for `srgb_to_linear`** (always on): uint8 images have only 256 possible values, so the piecewise formula is precomputed once — 10x faster than evaluating `pow` per pixel.
+- **numba-compiled recursive envelope** (`pip install ".[fast]"`): the photometric mask's five sequential scan passes, compiled and parallelized — 6x faster than the NumPy loops. Auto-enabled when numba is installed; set `IMAGE_ENHANCEMENT_NO_NUMBA=1` to force the NumPy path.
+
+Measured on a 2448x3264 (8 MP) photo (Apple Silicon, Python 3.12):
+
+| | before | after |
+|---|---|---|
+| `enhance_image` (full pipeline) | 1.65 s | **0.69 s** (2.4x) |
+| recursive envelope (per mask) | 250 ms | **40 ms** (6.3x) |
+| `srgb_to_linear` (uint8 input) | 302 ms | **29 ms** (10x) |
+
+The remaining time is dominated by `pow` over continuous float arrays (`linear_to_srgb`, graytone conversion), which cannot be table-driven without changing results.
+
 ## Development
 
 ```bash
@@ -142,7 +160,9 @@ python tests/regression/regression_harness.py capture
 
 CI runs on every push and pull request: lint, unit tests on Python 3.9–3.13, and the regression comparison.
 
-## CUDA acceleration
+## CUDA acceleration (legacy)
+
+> **Status:** the CUDA port is kept as-is from the original project and is not covered by the test suite or CI (it requires an NVIDIA GPU and a manual build). For CPU-side speedups use the `[fast]` extra above. A CuPy-based port would remove the manual compilation step and is the likely future direction.
 
 The `cuda/` directory contains a CUDA port of the main pipeline (photometric mask + enhancement kernels). The Python driver loads a compiled `.cubin` and runs the kernels on NumPy arrays. Replace `[arch]` with your GPU architecture (e.g. `-arch=sm_72`):
 

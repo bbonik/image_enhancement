@@ -54,3 +54,20 @@ jobs:
         env:
           REGRESSION_CROSS_PLATFORM: "1"
         run: pytest -m regression -q -s
+
+  regression-numba:
+    # Same golden-reference comparison, but with numba installed so the
+    # compiled envelope kernel is exercised. The fast path must produce
+    # results identical to the NumPy path.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package with dev and fast extras
+        run: pip install -e ".[dev,fast]"
+      - name: Compare against golden references (numba path)
+        env:
+          REGRESSION_CROSS_PLATFORM: "1"
+        run: pytest -m regression -q -s
