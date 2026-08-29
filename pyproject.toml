@@ -12,6 +12,10 @@ authors = [
     { name = "Vasileios Vonikakis", email = "bbonik@gmail.com" },
 ]
 requires-python = ">=3.9"
+keywords = [
+    "image-enhancement", "tone-mapping", "local-contrast", "white-balance",
+    "exposure-fusion", "retinex", "hdr", "image-processing",
+]
 dependencies = [
     "numpy>=1.22",
     "scikit-image>=0.19",

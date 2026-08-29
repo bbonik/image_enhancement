@@ -17,32 +17,47 @@ A NumPy-based (and CUDA-accelerated) library of image processing functions for i
 ## Installation
 
 ```bash
-pip install .            # from the repository root
-pip install -e .         # editable / development install
+pip install "git+https://github.com/bbonik/image_enhancement.git"
 ```
 
-Optional extras:
+That's it — the library only needs `numpy`, `scikit-image` and `imageio`, and runs fully headless. For a ~2.4x faster pipeline (identical results), add the `fast` extra:
 
 ```bash
-pip install ".[fast]"    # numba: ~2.4x faster pipeline, bit-identical results
-pip install ".[plot]"    # matplotlib, for verbose=True visualizations
-pip install ".[cuda]"    # pycuda + Pillow, for the CUDA pipeline
-pip install ".[dev]"     # pytest + ruff, for development
+pip install "image-enhancement[fast] @ git+https://github.com/bbonik/image_enhancement.git"
 ```
 
-The core library only needs `numpy`, `scikit-image` and `imageio`, and runs fully headless (matplotlib is loaded lazily, only if you ask for visualizations).
+<details>
+<summary>Other install options (clone, extras, development)</summary>
+
+```bash
+git clone https://github.com/bbonik/image_enhancement.git
+cd image_enhancement
+pip install -e .         # editable install
+pip install -e ".[fast]" # + numba: ~2.4x faster, bit-identical results
+pip install -e ".[plot]" # + matplotlib, for verbose=True visualizations
+pip install -e ".[cuda]" # + pycuda + Pillow, for the legacy CUDA pipeline
+pip install -e ".[dev]"  # + pytest + ruff, for development
+```
+
+</details>
 
 ## Quickstart
 
-Full enhancement pipeline (tone mapping + local contrast + saturation):
+Enhance a photo with sensible defaults — three lines:
 
 ```python
 import imageio.v2 as imageio
 from image_enhancement import enhance_image
 
-image = imageio.imread("images/lisbon.jpg")  # uint8 color image
+image = imageio.imread("my_photo.jpg")               # uint8 color image
+enhanced = enhance_image(image, {})                  # defaults just work
+imageio.imwrite("enhanced.jpg", (enhanced * 255).astype("uint8"))
+```
 
-enhanced = enhance_image(image, parameters={
+Every parameter is optional — override only what you want to change:
+
+```python
+enhanced = enhance_image(image, {
     "local_contrast": 1.5,       # 1.5x increase in local details
     "areas_dark": 0.7,           # strong improvement in dark areas
     "areas_bright": 0.5,         # moderate improvement in bright areas
@@ -51,24 +66,21 @@ enhanced = enhance_image(image, parameters={
     "preserve_tones": True,      # protect already well-exposed midtones
     "color_correction": False,   # optional white balance stage
 })
-
-# enhance_image returns float [0,1]; convert for saving
-imageio.imwrite("enhanced.jpg", (enhanced * 255).astype("uint8"))
 ```
 
-Exposure fusion:
+Blend bracketed exposures into one well-exposed image:
 
 ```python
-import imageio.v2 as imageio
 from image_enhancement import blend_exposures
 
 exposures = [imageio.imread(f) for f in
              ("short.jpg", "medium.jpg", "long.jpg")]  # any order
-
-fused = blend_exposures(exposures)   # float [0,1]
+fused = blend_exposures(exposures)                     # float [0,1]
 ```
 
-Individual stages can also be used on their own — see the [examples](examples/) directory for runnable scripts, including grayscale/medical image processing.
+Tips:
+- Pass `verbose=True` to any function to visualize the intermediate steps (needs matplotlib, i.e. the `[plot]` extra).
+- Individual stages can be used on their own — see the [examples](examples/) directory for runnable scripts, including grayscale/medical image processing.
 
 ## Gallery
 
@@ -127,38 +139,36 @@ The sRGB transforms follow the [EasyRGB reference math](https://www.easyrgb.com/
 
 ## Performance
 
-Two optional, **bit-exact** fast paths are built in (results are guaranteed identical to the reference implementation, enforced by the golden-reference regression suite):
+The library is fast out of the box (a 8 MP photo takes well under a second on a laptop). Installing the `[fast]` extra makes the full pipeline about **2.4x faster** — with results guaranteed identical, nothing else to configure.
 
-- **uint8 LUT for `srgb_to_linear`** (always on): uint8 images have only 256 possible values, so the piecewise formula is precomputed once — 10x faster than evaluating `pow` per pixel.
-- **numba-compiled recursive envelope** (`pip install ".[fast]"`): the photometric mask's five sequential scan passes, compiled and parallelized — 6x faster than the NumPy loops. Auto-enabled when numba is installed; set `IMAGE_ENHANCEMENT_NO_NUMBA=1` to force the NumPy path.
+<details>
+<summary>How the speedups work (technical details)</summary>
+
+Two fast paths, both producing results verified identical to the reference implementation by the test suite:
+
+- **uint8 lookup table for `srgb_to_linear`** (always on): a uint8 image has only 256 possible values, so the piecewise formula is precomputed once — 10x faster than evaluating `pow` per pixel.
+- **Compiled photometric mask** (with the `[fast]` extra): the edge-aware blur's five scan passes, compiled and parallelized with numba — 6x faster than the NumPy loops. Auto-enabled when numba is installed; set `IMAGE_ENHANCEMENT_NO_NUMBA=1` to force the plain NumPy path (e.g. when debugging).
 
 Measured on a 2448x3264 (8 MP) photo (Apple Silicon, Python 3.12):
 
 | | before | after |
 |---|---|---|
 | `enhance_image` (full pipeline) | 1.65 s | **0.69 s** (2.4x) |
-| recursive envelope (per mask) | 250 ms | **40 ms** (6.3x) |
+| photometric mask (per call) | 250 ms | **40 ms** (6.3x) |
 | `srgb_to_linear` (uint8 input) | 302 ms | **29 ms** (10x) |
 
-The remaining time is dominated by `pow` over continuous float arrays (`linear_to_srgb`, graytone conversion), which cannot be table-driven without changing results.
+</details>
 
 ## Development
 
 ```bash
+git clone https://github.com/bbonik/image_enhancement.git
+cd image_enhancement
 pip install -e ".[dev]"
-
-pytest tests/unit -q            # fast unit tests (<2 s)
-pytest -m regression -q -s      # compare against golden references
-ruff check src tests examples cuda
+pytest tests/unit -q     # fast unit tests (<2 s)
 ```
 
-The regression harness guards against unintended behavior changes: it compares the output of every public function against stored references at pixel level (bit-exact locally; `REGRESSION_CROSS_PLATFORM=1` absorbs isolated last-ulp quantization flips on other platforms in CI). If you intentionally change algorithm behavior, re-capture the references:
-
-```bash
-python tests/regression/regression_harness.py capture
-```
-
-CI runs on every push and pull request: lint, unit tests on Python 3.9–3.13, and the regression comparison.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide: test layout, the golden-reference regression harness, lint policy, and CI. The short version: any change to algorithm output is caught by a pixel-level comparison against stored references, so refactor with confidence.
 
 ## CUDA acceleration (legacy)
 
